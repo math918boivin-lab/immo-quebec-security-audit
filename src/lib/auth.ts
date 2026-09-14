@@ -102,12 +102,22 @@ export async function registerUser(
 
   const passwordHash = await hashPassword(password);
   const userId = makeId("user");
-  db.prepare("INSERT INTO users (id, name, email, password_hash) VALUES (?, ?, ?, ?)").run(
-    userId,
-    name.trim(),
-    normalizedEmail,
-    passwordHash
-  );
+  try {
+    db.prepare("INSERT INTO users (id, name, email, password_hash) VALUES (?, ?, ?, ?)").run(
+      userId,
+      name.trim(),
+      normalizedEmail,
+      passwordHash
+    );
+  } catch (err) {
+    // Deux inscriptions concurrentes avec le meme courriel peuvent toutes
+    // deux franchir la verification d'unicite ci-dessus avant d'ecrire;
+    // la contrainte UNIQUE sur users.email rejette la seconde ecriture.
+    if (err instanceof Error && /UNIQUE/i.test(err.message)) {
+      return { ok: false, reason: "email_taken" };
+    }
+    throw err;
+  }
 
   await createSession(userId);
   return { ok: true, userId };
