@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Trash2, Pencil, FileText } from "lucide-react";
-import { useStore } from "@/lib/store";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/Badge";
 import { Modal } from "@/components/Modal";
@@ -11,7 +11,8 @@ import { Field, inputClass, PrimaryButton, SecondaryButton } from "@/components/
 import { formatCurrency, formatDate } from "@/lib/format";
 import { leaseStatusMeta } from "@/lib/statusMeta";
 import { findProperty, findTenant, findUnit, tenantName, unitLabel } from "@/lib/selectors";
-import type { Lease, LeaseStatus } from "@/lib/types";
+import type { Lease, LeaseStatus, Property, Tenant, Unit } from "@/lib/types";
+import { createLease, deleteLease, updateLease } from "@/lib/actions";
 
 const emptyForm = {
   unitId: "",
@@ -23,21 +24,25 @@ const emptyForm = {
   status: "actif" as LeaseStatus,
 };
 
-export default function LeasesPage() {
-  const leases = useStore((s) => s.leases);
-  const units = useStore((s) => s.units);
-  const properties = useStore((s) => s.properties);
-  const tenants = useStore((s) => s.tenants);
-  const addLease = useStore((s) => s.addLease);
-  const updateLease = useStore((s) => s.updateLease);
-  const deleteLease = useStore((s) => s.deleteLease);
-  const updateUnit = useStore((s) => s.updateUnit);
-
+export function LeasesClient({
+  leases,
+  units,
+  properties,
+  tenants,
+}: {
+  leases: Lease[];
+  units: Unit[];
+  properties: Property[];
+  tenants: Tenant[];
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Lease | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [toDelete, setToDelete] = useState<Lease | null>(null);
   const [filter, setFilter] = useState<"all" | LeaseStatus>("all");
+  const [error, setError] = useState<string | null>(null);
 
   const filtered = filter === "all" ? leases : leases.filter((l) => l.status === filter);
   const sorted = [...filtered].sort((a, b) => b.startDate.localeCompare(a.startDate));
@@ -45,6 +50,7 @@ export default function LeasesPage() {
   function openAdd() {
     setEditing(null);
     setForm({ ...emptyForm, unitId: units[0]?.id ?? "", tenantId: tenants[0]?.id ?? "" });
+    setError(null);
     setOpen(true);
   }
 
@@ -59,21 +65,37 @@ export default function LeasesPage() {
       deposit: lease.deposit,
       status: lease.status,
     });
+    setError(null);
     setOpen(true);
   }
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.unitId || !form.tenantId) return;
-    if (editing) {
-      updateLease(editing.id, form);
-    } else {
-      addLease(form);
-      if (form.status === "actif" || form.status === "a_renouveler") {
-        updateUnit(form.unitId, { status: "occupee" });
+    setError(null);
+    startTransition(async () => {
+      try {
+        if (editing) {
+          await updateLease(editing.id, form);
+        } else {
+          await createLease(form);
+        }
+        setOpen(false);
+        router.refresh();
+      } catch {
+        setError("Impossible d'enregistrer le bail. Verifiez les champs.");
       }
-    }
-    setOpen(false);
+    });
+  }
+
+  function confirmDelete() {
+    if (!toDelete) return;
+    const id = toDelete.id;
+    startTransition(async () => {
+      await deleteLease(id);
+      setToDelete(null);
+      router.refresh();
+    });
   }
 
   return (
@@ -165,6 +187,7 @@ export default function LeasesPage() {
 
       <Modal open={open} onClose={() => setOpen(false)} title={editing ? "Modifier le bail" : "Ajouter un bail"} wide>
         <form onSubmit={submit} className="space-y-4">
+          {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
           <div className="grid grid-cols-2 gap-4">
             <Field label="Unite">
               <select
@@ -249,7 +272,9 @@ export default function LeasesPage() {
             <SecondaryButton type="button" onClick={() => setOpen(false)}>
               Annuler
             </SecondaryButton>
-            <PrimaryButton type="submit">{editing ? "Enregistrer" : "Ajouter"}</PrimaryButton>
+            <PrimaryButton type="submit" disabled={pending}>
+              {editing ? "Enregistrer" : "Ajouter"}
+            </PrimaryButton>
           </div>
         </form>
       </Modal>
@@ -259,10 +284,7 @@ export default function LeasesPage() {
         title="Supprimer le bail"
         message="Etes-vous sur de vouloir supprimer ce bail ? Tous les paiements associes seront aussi supprimes."
         onCancel={() => setToDelete(null)}
-        onConfirm={() => {
-          if (toDelete) deleteLease(toDelete.id);
-          setToDelete(null);
-        }}
+        onConfirm={confirmDelete}
       />
     </div>
   );

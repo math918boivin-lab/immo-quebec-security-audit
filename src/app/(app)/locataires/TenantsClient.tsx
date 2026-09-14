@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Mail, Phone, Plus, Search, Trash2 } from "lucide-react";
-import { useStore } from "@/lib/store";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/Badge";
 import { Modal } from "@/components/Modal";
@@ -12,7 +12,8 @@ import { Field, inputClass, PrimaryButton, SecondaryButton } from "@/components/
 import { initials } from "@/lib/format";
 import { tenantStatusMeta } from "@/lib/statusMeta";
 import { findProperty, findUnit, unitLabel } from "@/lib/selectors";
-import type { Tenant, TenantStatus } from "@/lib/types";
+import type { Lease, Property, Tenant, TenantStatus, Unit } from "@/lib/types";
+import { createTenant, deleteTenant } from "@/lib/actions";
 
 const emptyForm = {
   firstName: "",
@@ -23,18 +24,24 @@ const emptyForm = {
   notes: "",
 };
 
-export default function TenantsPage() {
-  const tenants = useStore((s) => s.tenants);
-  const leases = useStore((s) => s.leases);
-  const units = useStore((s) => s.units);
-  const properties = useStore((s) => s.properties);
-  const addTenant = useStore((s) => s.addTenant);
-  const deleteTenant = useStore((s) => s.deleteTenant);
-
+export function TenantsClient({
+  tenants,
+  leases,
+  units,
+  properties,
+}: {
+  tenants: Tenant[];
+  leases: Lease[];
+  units: Unit[];
+  properties: Property[];
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [toDelete, setToDelete] = useState<Tenant | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -56,10 +63,27 @@ export default function TenantsPage() {
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.firstName.trim() || !form.email.trim()) return;
-    addTenant(form);
-    setForm(emptyForm);
-    setOpen(false);
+    setError(null);
+    startTransition(async () => {
+      try {
+        await createTenant(form);
+        setForm(emptyForm);
+        setOpen(false);
+        router.refresh();
+      } catch {
+        setError("Impossible d'ajouter le locataire. Verifiez les champs.");
+      }
+    });
+  }
+
+  function confirmDelete() {
+    if (!toDelete) return;
+    const id = toDelete.id;
+    startTransition(async () => {
+      await deleteTenant(id);
+      setToDelete(null);
+      router.refresh();
+    });
   }
 
   return (
@@ -135,6 +159,7 @@ export default function TenantsPage() {
 
       <Modal open={open} onClose={() => setOpen(false)} title="Ajouter un locataire">
         <form onSubmit={submit} className="space-y-4">
+          {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
           <div className="grid grid-cols-2 gap-4">
             <Field label="Prenom / Nom de l'entreprise">
               <input
@@ -183,7 +208,9 @@ export default function TenantsPage() {
             <SecondaryButton type="button" onClick={() => setOpen(false)}>
               Annuler
             </SecondaryButton>
-            <PrimaryButton type="submit">Ajouter</PrimaryButton>
+            <PrimaryButton type="submit" disabled={pending}>
+              Ajouter
+            </PrimaryButton>
           </div>
         </form>
       </Modal>
@@ -193,10 +220,7 @@ export default function TenantsPage() {
         title="Supprimer le locataire"
         message={`Etes-vous sur de vouloir supprimer "${toDelete?.firstName} ${toDelete?.lastName}" ?`}
         onCancel={() => setToDelete(null)}
-        onConfirm={() => {
-          if (toDelete) deleteTenant(toDelete.id);
-          setToDelete(null);
-        }}
+        onConfirm={confirmDelete}
       />
     </div>
   );

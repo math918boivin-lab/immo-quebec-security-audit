@@ -7,11 +7,13 @@ import {
   CreditCard,
   FileText,
   LayoutDashboard,
+  LogOut,
   Users,
   Wrench,
   Building,
 } from "lucide-react";
 import { clsx } from "clsx";
+import { logoutAction } from "@/lib/auth-actions";
 
 const links = [
   { href: "/", label: "Tableau de bord", icon: LayoutDashboard },
@@ -22,7 +24,7 @@ const links = [
   { href: "/maintenance", label: "Maintenance", icon: Wrench },
 ];
 
-export function Sidebar() {
+export function Sidebar({ userEmail }: { userEmail: string }) {
   const pathname = usePathname();
 
   return (
@@ -57,8 +59,18 @@ export function Sidebar() {
           );
         })}
       </nav>
-      <div className="px-4 py-4 border-t border-gray-200 text-xs text-slate-400">
-        Donnees stockees localement dans votre navigateur.
+      <div className="border-t border-gray-200 px-4 py-4">
+        <p className="truncate text-xs text-slate-500" title={userEmail}>
+          {userEmail}
+        </p>
+        <form action={logoutAction}>
+          <button
+            type="submit"
+            className="mt-2 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+          >
+            <LogOut className="h-4 w-4" /> Se deconnecter
+          </button>
+        </form>
       </div>
     </aside>
   );

@@ -1,9 +1,9 @@
 "use client";
 
-import { use, useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, MapPin, Plus, Trash2, Pencil } from "lucide-react";
-import { useStore } from "@/lib/store";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/Badge";
 import { Modal } from "@/components/Modal";
@@ -12,7 +12,8 @@ import { Field, inputClass, PrimaryButton, SecondaryButton } from "@/components/
 import { formatCurrency } from "@/lib/format";
 import { unitStatusMeta } from "@/lib/statusMeta";
 import { tenantName } from "@/lib/selectors";
-import type { Unit, UnitStatus, UnitType } from "@/lib/types";
+import type { Lease, Property, Tenant, Unit, UnitStatus, UnitType } from "@/lib/types";
+import { createUnit, deleteUnit, updateUnit } from "@/lib/actions";
 
 const unitTypes: UnitType[] = ["Studio", "1 ½", "2 ½", "3 ½", "4 ½", "5 ½", "Commercial"];
 const unitStatuses: UnitStatus[] = ["occupee", "vacante", "maintenance"];
@@ -25,38 +26,29 @@ const emptyUnitForm = {
   status: "vacante" as UnitStatus,
 };
 
-export default function PropertyDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
-  const properties = useStore((s) => s.properties);
-  const units = useStore((s) => s.units);
-  const leases = useStore((s) => s.leases);
-  const tenants = useStore((s) => s.tenants);
-  const addUnit = useStore((s) => s.addUnit);
-  const updateUnit = useStore((s) => s.updateUnit);
-  const deleteUnit = useStore((s) => s.deleteUnit);
-
-  const property = properties.find((p) => p.id === id);
-  const propertyUnits = units.filter((u) => u.propertyId === id);
-
+export function PropertyDetailClient({
+  property,
+  units,
+  leases,
+  tenants,
+}: {
+  property: Property;
+  units: Unit[];
+  leases: Lease[];
+  tenants: Tenant[];
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Unit | null>(null);
   const [form, setForm] = useState(emptyUnitForm);
   const [toDelete, setToDelete] = useState<Unit | null>(null);
-
-  if (!property) {
-    return (
-      <div>
-        <Link href="/immeubles" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900">
-          <ArrowLeft className="h-4 w-4" /> Retour aux immeubles
-        </Link>
-        <p className="mt-6 text-slate-500">Cet immeuble est introuvable.</p>
-      </div>
-    );
-  }
+  const [error, setError] = useState<string | null>(null);
 
   function openAdd() {
     setEditing(null);
     setForm(emptyUnitForm);
+    setError(null);
     setOpen(true);
   }
 
@@ -69,18 +61,36 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
       rent: unit.rent,
       status: unit.status,
     });
+    setError(null);
     setOpen(true);
   }
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.number.trim()) return;
-    if (editing) {
-      updateUnit(editing.id, form);
-    } else {
-      addUnit({ ...form, propertyId: id });
-    }
-    setOpen(false);
+    setError(null);
+    startTransition(async () => {
+      try {
+        if (editing) {
+          await updateUnit(editing.id, form);
+        } else {
+          await createUnit({ ...form, propertyId: property.id });
+        }
+        setOpen(false);
+        router.refresh();
+      } catch {
+        setError("Impossible d'enregistrer l'unite. Verifiez les champs.");
+      }
+    });
+  }
+
+  function confirmDelete() {
+    if (!toDelete) return;
+    const id = toDelete.id;
+    startTransition(async () => {
+      await deleteUnit(id);
+      setToDelete(null);
+      router.refresh();
+    });
   }
 
   const activeTenantForUnit = (unitId: string) => {
@@ -131,7 +141,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {propertyUnits.map((unit) => {
+            {units.map((unit) => {
               const tenant = activeTenantForUnit(unit.id);
               return (
                 <tr key={unit.id} className="hover:bg-slate-50">
@@ -164,7 +174,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
                 </tr>
               );
             })}
-            {propertyUnits.length === 0 && (
+            {units.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
                   Aucune unite pour cet immeuble.
@@ -177,6 +187,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
 
       <Modal open={open} onClose={() => setOpen(false)} title={editing ? "Modifier l'unite" : "Ajouter une unite"}>
         <form onSubmit={submit} className="space-y-4">
+          {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
           <Field label="Numero d'unite">
             <input
               className={inputClass}
@@ -236,7 +247,9 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
             <SecondaryButton type="button" onClick={() => setOpen(false)}>
               Annuler
             </SecondaryButton>
-            <PrimaryButton type="submit">{editing ? "Enregistrer" : "Ajouter"}</PrimaryButton>
+            <PrimaryButton type="submit" disabled={pending}>
+              {editing ? "Enregistrer" : "Ajouter"}
+            </PrimaryButton>
           </div>
         </form>
       </Modal>
@@ -246,10 +259,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
         title="Supprimer l'unite"
         message={`Etes-vous sur de vouloir supprimer l'unite "${toDelete?.number}" ? Les baux associes seront aussi supprimes.`}
         onCancel={() => setToDelete(null)}
-        onConfirm={() => {
-          if (toDelete) deleteUnit(toDelete.id);
-          setToDelete(null);
-        }}
+        onConfirm={confirmDelete}
       />
     </div>
   );

@@ -1,55 +1,44 @@
 "use client";
 
-import { use, useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Mail, Phone, Pencil } from "lucide-react";
-import { useStore } from "@/lib/store";
 import { Badge } from "@/components/Badge";
 import { Modal } from "@/components/Modal";
 import { Field, inputClass, PrimaryButton, SecondaryButton } from "@/components/form";
 import { formatCurrency, formatDate, initials } from "@/lib/format";
 import { leaseStatusMeta, paymentStatusMeta, tenantStatusMeta } from "@/lib/statusMeta";
 import { findProperty, findUnit, unitLabel } from "@/lib/selectors";
-import type { TenantStatus } from "@/lib/types";
+import type { Lease, Payment, Property, Tenant, TenantStatus, Unit } from "@/lib/types";
+import { updateTenant } from "@/lib/actions";
 
-export default function TenantDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
-  const tenants = useStore((s) => s.tenants);
-  const leases = useStore((s) => s.leases);
-  const units = useStore((s) => s.units);
-  const properties = useStore((s) => s.properties);
-  const payments = useStore((s) => s.payments);
-  const updateTenant = useStore((s) => s.updateTenant);
-
-  const tenant = tenants.find((t) => t.id === id);
-  const tenantLeases = leases.filter((l) => l.tenantId === id);
-  const leaseIds = tenantLeases.map((l) => l.id);
-  const tenantPayments = payments
-    .filter((p) => leaseIds.includes(p.leaseId))
-    .sort((a, b) => b.dueDate.localeCompare(a.dueDate));
-
+export function TenantDetailClient({
+  tenant,
+  leases,
+  units,
+  properties,
+  payments,
+}: {
+  tenant: Tenant;
+  leases: Lease[];
+  units: Unit[];
+  properties: Property[];
+  payments: Payment[];
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState(() => ({
-    firstName: tenant?.firstName ?? "",
-    lastName: tenant?.lastName ?? "",
-    email: tenant?.email ?? "",
-    phone: tenant?.phone ?? "",
-    status: (tenant?.status ?? "actif") as TenantStatus,
-  }));
-
-  if (!tenant) {
-    return (
-      <div>
-        <Link href="/locataires" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900">
-          <ArrowLeft className="h-4 w-4" /> Retour aux locataires
-        </Link>
-        <p className="mt-6 text-slate-500">Ce locataire est introuvable.</p>
-      </div>
-    );
-  }
+  const [error, setError] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    firstName: tenant.firstName,
+    lastName: tenant.lastName,
+    email: tenant.email,
+    phone: tenant.phone,
+    status: tenant.status as TenantStatus,
+  });
 
   function openEdit() {
-    if (!tenant) return;
     setForm({
       firstName: tenant.firstName,
       lastName: tenant.lastName,
@@ -57,13 +46,22 @@ export default function TenantDetailPage({ params }: { params: Promise<{ id: str
       phone: tenant.phone,
       status: tenant.status,
     });
+    setError(null);
     setOpen(true);
   }
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    updateTenant(id, form);
-    setOpen(false);
+    setError(null);
+    startTransition(async () => {
+      try {
+        await updateTenant(tenant.id, form);
+        setOpen(false);
+        router.refresh();
+      } catch {
+        setError("Impossible d'enregistrer. Verifiez les champs.");
+      }
+    });
   }
 
   return (
@@ -104,11 +102,11 @@ export default function TenantDetailPage({ params }: { params: Promise<{ id: str
 
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm lg:col-span-2">
           <h2 className="mb-3 font-semibold text-slate-900">Historique des baux</h2>
-          {tenantLeases.length === 0 ? (
+          {leases.length === 0 ? (
             <p className="text-sm text-slate-400">Aucun bail associe.</p>
           ) : (
             <ul className="divide-y divide-gray-100">
-              {tenantLeases.map((lease) => {
+              {leases.map((lease) => {
                 const unit = findUnit(units, lease.unitId);
                 const property = findProperty(properties, unit?.propertyId);
                 return (
@@ -133,7 +131,7 @@ export default function TenantDetailPage({ params }: { params: Promise<{ id: str
 
       <div className="mt-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 className="mb-3 font-semibold text-slate-900">Historique des paiements</h2>
-        {tenantPayments.length === 0 ? (
+        {payments.length === 0 ? (
           <p className="text-sm text-slate-400">Aucun paiement enregistre.</p>
         ) : (
           <table className="w-full text-left text-sm">
@@ -146,7 +144,7 @@ export default function TenantDetailPage({ params }: { params: Promise<{ id: str
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {tenantPayments.map((payment) => (
+              {payments.map((payment) => (
                 <tr key={payment.id}>
                   <td className="py-2 pr-4 text-slate-600">{formatDate(payment.dueDate)}</td>
                   <td className="py-2 pr-4 font-medium text-slate-900">{formatCurrency(payment.amount)}</td>
@@ -167,6 +165,7 @@ export default function TenantDetailPage({ params }: { params: Promise<{ id: str
 
       <Modal open={open} onClose={() => setOpen(false)} title="Modifier le locataire">
         <form onSubmit={submit} className="space-y-4">
+          {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
           <div className="grid grid-cols-2 gap-4">
             <Field label="Prenom / Nom de l'entreprise">
               <input
@@ -214,7 +213,9 @@ export default function TenantDetailPage({ params }: { params: Promise<{ id: str
             <SecondaryButton type="button" onClick={() => setOpen(false)}>
               Annuler
             </SecondaryButton>
-            <PrimaryButton type="submit">Enregistrer</PrimaryButton>
+            <PrimaryButton type="submit" disabled={pending}>
+              Enregistrer
+            </PrimaryButton>
           </div>
         </form>
       </Modal>

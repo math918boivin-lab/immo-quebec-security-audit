@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -8,7 +6,14 @@ import {
   Percent,
   Wrench,
 } from "lucide-react";
-import { useStore } from "@/lib/store";
+import {
+  listLeases,
+  listMaintenanceRequests,
+  listPayments,
+  listProperties,
+  listTenants,
+  listUnits,
+} from "@/lib/data";
 import { StatCard } from "@/components/StatCard";
 import { RevenueChart } from "@/components/RevenueChart";
 import { Badge } from "@/components/Badge";
@@ -17,13 +22,13 @@ import { formatCurrency, formatDate, daysBetween, todayIso } from "@/lib/format"
 import { findProperty, findTenant, findUnit, tenantName, unitLabel } from "@/lib/selectors";
 import { leaseStatusMeta, maintenancePriorityMeta } from "@/lib/statusMeta";
 
-export default function DashboardPage() {
-  const properties = useStore((s) => s.properties);
-  const units = useStore((s) => s.units);
-  const tenants = useStore((s) => s.tenants);
-  const leases = useStore((s) => s.leases);
-  const payments = useStore((s) => s.payments);
-  const maintenanceRequests = useStore((s) => s.maintenanceRequests);
+export default async function DashboardPage() {
+  const properties = listProperties();
+  const units = listUnits();
+  const tenants = listTenants();
+  const leases = listLeases();
+  const payments = listPayments();
+  const maintenanceRequests = listMaintenanceRequests();
 
   const occupiedUnits = units.filter((u) => u.status === "occupee").length;
   const occupancyRate = units.length ? Math.round((occupiedUnits / units.length) * 100) : 0;

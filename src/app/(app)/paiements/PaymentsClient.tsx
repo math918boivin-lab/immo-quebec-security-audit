@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { CheckCircle2, CreditCard, Plus, Trash2 } from "lucide-react";
-import { useStore } from "@/lib/store";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/Badge";
 import { Modal } from "@/components/Modal";
@@ -11,7 +11,8 @@ import { Field, inputClass, PrimaryButton, SecondaryButton } from "@/components/
 import { formatCurrency, formatDate } from "@/lib/format";
 import { paymentStatusMeta } from "@/lib/statusMeta";
 import { findProperty, findTenant, findUnit, tenantName, unitLabel } from "@/lib/selectors";
-import type { Payment, PaymentMethod, PaymentStatus } from "@/lib/types";
+import type { Lease, Payment, PaymentMethod, PaymentStatus, Property, Tenant, Unit } from "@/lib/types";
+import { createPayment, deletePayment, markPaymentPaid } from "@/lib/actions";
 
 const emptyForm = {
   leaseId: "",
@@ -21,20 +22,26 @@ const emptyForm = {
   method: "virement" as PaymentMethod,
 };
 
-export default function PaymentsPage() {
-  const payments = useStore((s) => s.payments);
-  const leases = useStore((s) => s.leases);
-  const units = useStore((s) => s.units);
-  const properties = useStore((s) => s.properties);
-  const tenants = useStore((s) => s.tenants);
-  const addPayment = useStore((s) => s.addPayment);
-  const deletePayment = useStore((s) => s.deletePayment);
-  const markPaymentPaid = useStore((s) => s.markPaymentPaid);
-
+export function PaymentsClient({
+  payments,
+  leases,
+  units,
+  properties,
+  tenants,
+}: {
+  payments: Payment[];
+  leases: Lease[];
+  units: Unit[];
+  properties: Property[];
+  tenants: Tenant[];
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const [filter, setFilter] = useState<"all" | PaymentStatus>("all");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [toDelete, setToDelete] = useState<Payment | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const enriched = useMemo(() => {
     return payments.map((payment) => {
@@ -58,15 +65,33 @@ export default function PaymentsPage() {
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.leaseId) return;
-    addPayment({
-      leaseId: form.leaseId,
-      amount: Number(form.amount),
-      dueDate: form.dueDate,
-      status: form.status,
-      method: form.status === "paye" ? form.method : undefined,
-      paidDate: form.status === "paye" ? new Date().toISOString().slice(0, 10) : undefined,
+    setError(null);
+    startTransition(async () => {
+      try {
+        await createPayment(form);
+        setOpen(false);
+        router.refresh();
+      } catch {
+        setError("Impossible d'ajouter le paiement. Verifiez les champs.");
+      }
     });
-    setOpen(false);
+  }
+
+  function markPaid(id: string) {
+    startTransition(async () => {
+      await markPaymentPaid(id);
+      router.refresh();
+    });
+  }
+
+  function confirmDelete() {
+    if (!toDelete) return;
+    const id = toDelete.id;
+    startTransition(async () => {
+      await deletePayment(id);
+      setToDelete(null);
+      router.refresh();
+    });
   }
 
   return (
@@ -78,6 +103,7 @@ export default function PaymentsPage() {
           <PrimaryButton
             onClick={() => {
               setForm({ ...emptyForm, leaseId: leases[0]?.id ?? "" });
+              setError(null);
               setOpen(true);
             }}
           >
@@ -143,7 +169,8 @@ export default function PaymentsPage() {
                   <div className="flex justify-end gap-1">
                     {payment.status !== "paye" && (
                       <button
-                        onClick={() => markPaymentPaid(payment.id)}
+                        onClick={() => markPaid(payment.id)}
+                        disabled={pending}
                         className="rounded-md p-1.5 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600"
                         aria-label="Marquer comme paye"
                         title="Marquer comme paye"
@@ -176,6 +203,7 @@ export default function PaymentsPage() {
 
       <Modal open={open} onClose={() => setOpen(false)} title="Ajouter un paiement">
         <form onSubmit={submit} className="space-y-4">
+          {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
           <Field label="Bail">
             <select
               className={inputClass}
@@ -244,7 +272,9 @@ export default function PaymentsPage() {
             <SecondaryButton type="button" onClick={() => setOpen(false)}>
               Annuler
             </SecondaryButton>
-            <PrimaryButton type="submit">Ajouter</PrimaryButton>
+            <PrimaryButton type="submit" disabled={pending}>
+              Ajouter
+            </PrimaryButton>
           </div>
         </form>
       </Modal>
@@ -254,10 +284,7 @@ export default function PaymentsPage() {
         title="Supprimer le paiement"
         message="Etes-vous sur de vouloir supprimer ce paiement ?"
         onCancel={() => setToDelete(null)}
-        onConfirm={() => {
-          if (toDelete) deletePayment(toDelete.id);
-          setToDelete(null);
-        }}
+        onConfirm={confirmDelete}
       />
     </div>
   );

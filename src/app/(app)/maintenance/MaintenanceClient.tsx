@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Building2, Plus, Trash2, Wrench } from "lucide-react";
-import { useStore } from "@/lib/store";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/Badge";
 import { Modal } from "@/components/Modal";
@@ -16,7 +16,14 @@ import type {
   MaintenancePriority,
   MaintenanceRequest,
   MaintenanceStatus,
+  Property,
+  Unit,
 } from "@/lib/types";
+import {
+  createMaintenanceRequest,
+  deleteMaintenanceRequest,
+  updateMaintenanceStatus,
+} from "@/lib/actions";
 
 const columns: MaintenanceStatus[] = ["ouverte", "en_cours", "resolue"];
 
@@ -28,34 +35,52 @@ const emptyForm = {
   priority: "moyenne" as MaintenancePriority,
 };
 
-export default function MaintenancePage() {
-  const requests = useStore((s) => s.maintenanceRequests);
-  const units = useStore((s) => s.units);
-  const properties = useStore((s) => s.properties);
-  const addMaintenanceRequest = useStore((s) => s.addMaintenanceRequest);
-  const updateMaintenanceRequest = useStore((s) => s.updateMaintenanceRequest);
-  const deleteMaintenanceRequest = useStore((s) => s.deleteMaintenanceRequest);
-
+export function MaintenanceClient({
+  requests,
+  units,
+  properties,
+}: {
+  requests: MaintenanceRequest[];
+  units: Unit[];
+  properties: Property[];
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [toDelete, setToDelete] = useState<MaintenanceRequest | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.unitId || !form.title.trim()) return;
-    addMaintenanceRequest({
-      ...form,
-      status: "ouverte",
-      createdAt: new Date().toISOString().slice(0, 10),
+    setError(null);
+    startTransition(async () => {
+      try {
+        await createMaintenanceRequest(form);
+        setForm(emptyForm);
+        setOpen(false);
+        router.refresh();
+      } catch {
+        setError("Impossible de creer la demande. Verifiez les champs.");
+      }
     });
-    setForm(emptyForm);
-    setOpen(false);
   }
 
   function changeStatus(request: MaintenanceRequest, status: MaintenanceStatus) {
-    updateMaintenanceRequest(request.id, {
-      status,
-      resolvedAt: status === "resolue" ? new Date().toISOString().slice(0, 10) : undefined,
+    startTransition(async () => {
+      await updateMaintenanceStatus(request.id, status);
+      router.refresh();
+    });
+  }
+
+  function confirmDelete() {
+    if (!toDelete) return;
+    const id = toDelete.id;
+    startTransition(async () => {
+      await deleteMaintenanceRequest(id);
+      setToDelete(null);
+      router.refresh();
     });
   }
 
@@ -68,6 +93,7 @@ export default function MaintenancePage() {
           <PrimaryButton
             onClick={() => {
               setForm({ ...emptyForm, unitId: units[0]?.id ?? "" });
+              setError(null);
               setOpen(true);
             }}
           >
@@ -118,6 +144,7 @@ export default function MaintenancePage() {
                       <select
                         className="mt-3 w-full rounded-md border border-gray-200 px-2 py-1.5 text-xs text-slate-600"
                         value={request.status}
+                        disabled={pending}
                         onChange={(e) => changeStatus(request, e.target.value as MaintenanceStatus)}
                       >
                         <option value="ouverte">Ouverte</option>
@@ -138,6 +165,7 @@ export default function MaintenancePage() {
 
       <Modal open={open} onClose={() => setOpen(false)} title="Nouvelle demande de maintenance">
         <form onSubmit={submit} className="space-y-4">
+          {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
           <Field label="Unite concernee">
             <select
               className={inputClass}
@@ -201,7 +229,7 @@ export default function MaintenancePage() {
             <SecondaryButton type="button" onClick={() => setOpen(false)}>
               Annuler
             </SecondaryButton>
-            <PrimaryButton type="submit">
+            <PrimaryButton type="submit" disabled={pending}>
               <Wrench className="h-4 w-4" /> Creer
             </PrimaryButton>
           </div>
@@ -213,10 +241,7 @@ export default function MaintenancePage() {
         title="Supprimer la demande"
         message="Etes-vous sur de vouloir supprimer cette demande de maintenance ?"
         onCancel={() => setToDelete(null)}
-        onConfirm={() => {
-          if (toDelete) deleteMaintenanceRequest(toDelete.id);
-          setToDelete(null);
-        }}
+        onConfirm={confirmDelete}
       />
     </div>
   );

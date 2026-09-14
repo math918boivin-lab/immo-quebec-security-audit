@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Building2, MapPin, Plus, Trash2 } from "lucide-react";
-import { useStore } from "@/lib/store";
 import { PageHeader } from "@/components/PageHeader";
 import { Modal } from "@/components/Modal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Field, inputClass, PrimaryButton, SecondaryButton } from "@/components/form";
-import type { Property, PropertyType } from "@/lib/types";
+import type { Property, PropertyType, Unit } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
+import { createProperty, deleteProperty } from "@/lib/actions";
 
 const emptyForm = {
   name: "",
@@ -21,22 +22,37 @@ const emptyForm = {
   notes: "",
 };
 
-export default function PropertiesPage() {
-  const properties = useStore((s) => s.properties);
-  const units = useStore((s) => s.units);
-  const addProperty = useStore((s) => s.addProperty);
-  const deleteProperty = useStore((s) => s.deleteProperty);
-
+export function ImmeublesClient({ properties, units }: { properties: Property[]; units: Unit[] }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [toDelete, setToDelete] = useState<Property | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.name.trim() || !form.address.trim() || !form.city.trim()) return;
-    addProperty({ ...form, yearBuilt: Number(form.yearBuilt) });
-    setForm(emptyForm);
-    setOpen(false);
+    setError(null);
+    startTransition(async () => {
+      try {
+        await createProperty(form);
+        setForm(emptyForm);
+        setOpen(false);
+        router.refresh();
+      } catch {
+        setError("Impossible d'ajouter l'immeuble. Verifiez les champs.");
+      }
+    });
+  }
+
+  function confirmDelete() {
+    if (!toDelete) return;
+    const id = toDelete.id;
+    startTransition(async () => {
+      await deleteProperty(id);
+      setToDelete(null);
+      router.refresh();
+    });
   }
 
   return (
@@ -90,6 +106,7 @@ export default function PropertiesPage() {
 
       <Modal open={open} onClose={() => setOpen(false)} title="Ajouter un immeuble">
         <form onSubmit={submit} className="space-y-4">
+          {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
           <Field label="Nom de l'immeuble">
             <input
               className={inputClass}
@@ -160,7 +177,9 @@ export default function PropertiesPage() {
             <SecondaryButton type="button" onClick={() => setOpen(false)}>
               Annuler
             </SecondaryButton>
-            <PrimaryButton type="submit">Ajouter</PrimaryButton>
+            <PrimaryButton type="submit" disabled={pending}>
+              Ajouter
+            </PrimaryButton>
           </div>
         </form>
       </Modal>
@@ -170,10 +189,7 @@ export default function PropertiesPage() {
         title="Supprimer l'immeuble"
         message={`Etes-vous sur de vouloir supprimer "${toDelete?.name}" ? Toutes les unites et baux associes seront aussi supprimes.`}
         onCancel={() => setToDelete(null)}
-        onConfirm={() => {
-          if (toDelete) deleteProperty(toDelete.id);
-          setToDelete(null);
-        }}
+        onConfirm={confirmDelete}
       />
     </div>
   );
