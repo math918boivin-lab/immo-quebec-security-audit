@@ -93,3 +93,23 @@ export const maintenanceRequestSchema = z.object({
 });
 
 export const idSchema = z.string().min(1).max(200);
+
+export const blogStatusSchema = z.enum(["brouillon", "publie"]);
+
+export const blogPostSchema = z.object({
+  title: shortText(200),
+  content: z.string().trim().min(1).max(50_000),
+  status: blogStatusSchema,
+});
+
+export const signupSchema = z
+  .object({
+    name: shortText(150),
+    email: z.string().trim().email().max(200),
+    password: z.string().min(12).max(200),
+    confirmPassword: z.string().min(1).max(200),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Les mots de passe ne correspondent pas.",
+    path: ["confirmPassword"],
+  });

@@ -8,10 +8,12 @@ const SESSION_COOKIE = "immo_session";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 jours
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_MS = 1000 * 60 * 15; // 15 minutes
+export const MIN_PASSWORD_LENGTH = 12;
 
 export interface SessionUser {
   id: string;
   email: string;
+  name: string;
 }
 
 function hashToken(token: string): string {
@@ -24,6 +26,7 @@ export async function hashPassword(password: string): Promise<string> {
 
 interface UserRow {
   id: string;
+  name: string;
   email: string;
   password_hash: string;
   failed_attempts: number;
@@ -75,6 +78,41 @@ export async function attemptLogin(email: string, password: string): Promise<Log
   return { ok: true };
 }
 
+export type RegisterResult =
+  | { ok: true; userId: string }
+  | { ok: false; reason: "email_taken" | "weak_password" };
+
+export async function registerUser(
+  name: string,
+  email: string,
+  password: string
+): Promise<RegisterResult> {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return { ok: false, reason: "weak_password" };
+  }
+
+  const existing = db
+    .prepare<[string], { id: string }>("SELECT id FROM users WHERE email = ?")
+    .get(normalizedEmail);
+  if (existing) {
+    return { ok: false, reason: "email_taken" };
+  }
+
+  const passwordHash = await hashPassword(password);
+  const userId = makeId("user");
+  db.prepare("INSERT INTO users (id, name, email, password_hash) VALUES (?, ?, ?, ?)").run(
+    userId,
+    name.trim(),
+    normalizedEmail,
+    passwordHash
+  );
+
+  await createSession(userId);
+  return { ok: true, userId };
+}
+
 export async function createSession(userId: string): Promise<void> {
   const token = crypto.randomBytes(32).toString("hex");
   const tokenHash = hashToken(token);
@@ -101,8 +139,12 @@ export async function getSession(): Promise<SessionUser | null> {
 
   const tokenHash = hashToken(token);
   const row = db
-    .prepare<[string], { user_id: string; expires_at: string; email: string }>(
-      `SELECT sessions.user_id as user_id, sessions.expires_at as expires_at, users.email as email
+    .prepare<
+      [string],
+      { user_id: string; expires_at: string; email: string; name: string }
+    >(
+      `SELECT sessions.user_id as user_id, sessions.expires_at as expires_at,
+              users.email as email, users.name as name
        FROM sessions JOIN users ON users.id = sessions.user_id
        WHERE sessions.token_hash = ?`
     )
@@ -114,7 +156,7 @@ export async function getSession(): Promise<SessionUser | null> {
     return null;
   }
 
-  return { id: row.user_id, email: row.email };
+  return { id: row.user_id, email: row.email, name: row.name };
 }
 
 export async function destroySession(): Promise<void> {
@@ -134,31 +176,40 @@ export async function requireAuth(): Promise<SessionUser> {
   return user;
 }
 
-export function ensureAdminUser(): void {
+/**
+ * Cree un compte administrateur de demonstration au tout premier demarrage
+ * si ADMIN_EMAIL/ADMIN_PASSWORD sont fournis et qu'aucun utilisateur
+ * n'existe encore. Retourne l'id du compte cree (utilise pour y rattacher
+ * les donnees de demonstration), ou null si aucun compte n'a ete cree.
+ * L'inscription libre (src/lib/auth-actions.ts:registerAction) reste le
+ * chemin normal pour creer des comptes ensuite.
+ */
+export function ensureAdminUser(): string | null {
   const existing = db.prepare("SELECT id FROM users LIMIT 1").get();
-  if (existing) return;
+  if (existing) return null;
 
   const email = process.env.ADMIN_EMAIL;
   const password = process.env.ADMIN_PASSWORD;
 
   if (!email || !password) {
-    console.warn(
-      "[auth] Aucun utilisateur admin trouve et ADMIN_EMAIL/ADMIN_PASSWORD non definis. " +
-        "Definissez ces variables d'environnement puis redemarrez pour creer le premier compte."
-    );
-    return;
+    return null;
   }
 
-  if (password.length < 12) {
-    console.warn("[auth] ADMIN_PASSWORD doit contenir au moins 12 caracteres. Compte non cree.");
-    return;
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    console.warn(
+      `[auth] ADMIN_PASSWORD doit contenir au moins ${MIN_PASSWORD_LENGTH} caracteres. Compte non cree.`
+    );
+    return null;
   }
 
   const passwordHash = bcrypt.hashSync(password, 12);
-  db.prepare("INSERT INTO users (id, email, password_hash) VALUES (?, ?, ?)").run(
-    makeId("user"),
+  const userId = makeId("user");
+  db.prepare("INSERT INTO users (id, name, email, password_hash) VALUES (?, ?, ?, ?)").run(
+    userId,
+    "Admin",
     email.trim().toLowerCase(),
     passwordHash
   );
   console.warn(`[auth] Compte administrateur cree pour ${email}.`);
+  return userId;
 }

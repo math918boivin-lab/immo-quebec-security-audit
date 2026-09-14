@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getProperty, listLeases, listTenants, listUnitsForProperty } from "@/lib/data";
+import { requireAuth } from "@/lib/auth";
 import { PropertyDetailClient } from "./PropertyDetailClient";
 
 export default async function PropertyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const property = getProperty(id);
+  const user = await requireAuth();
+  const property = getProperty(user.id, id);
 
   if (!property) {
     return (
@@ -18,9 +20,9 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
     );
   }
 
-  const units = listUnitsForProperty(id);
-  const leases = listLeases();
-  const tenants = listTenants();
+  const units = listUnitsForProperty(user.id, id);
+  const leases = listLeases(user.id);
+  const tenants = listTenants(user.id);
 
   return <PropertyDetailClient property={property} units={units} leases={leases} tenants={tenants} />;
 }

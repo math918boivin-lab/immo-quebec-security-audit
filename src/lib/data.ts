@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "./db";
 import type {
+  BlogPost,
   Lease,
   MaintenanceRequest,
   Payment,
@@ -71,6 +72,15 @@ interface MaintenanceRow {
   status: string;
   created_at: string;
   resolved_at: string | null;
+}
+
+interface BlogPostRow {
+  id: string;
+  title: string;
+  content: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
 }
 
 function toProperty(r: PropertyRow): Property {
@@ -149,68 +159,122 @@ function toMaintenance(r: MaintenanceRow): MaintenanceRequest {
   };
 }
 
-export function listProperties(): Property[] {
-  return db.prepare<[], PropertyRow>("SELECT * FROM properties ORDER BY name").all().map(toProperty);
+function toBlogPost(r: BlogPostRow): BlogPost {
+  return {
+    id: r.id,
+    title: r.title,
+    content: r.content,
+    status: r.status as BlogPost["status"],
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
 }
 
-export function getProperty(id: string): Property | undefined {
-  const row = db.prepare<[string], PropertyRow>("SELECT * FROM properties WHERE id = ?").get(id);
+export function listProperties(ownerId: string): Property[] {
+  return db
+    .prepare<[string], PropertyRow>("SELECT * FROM properties WHERE owner_id = ? ORDER BY name")
+    .all(ownerId)
+    .map(toProperty);
+}
+
+export function getProperty(ownerId: string, id: string): Property | undefined {
+  const row = db
+    .prepare<[string, string], PropertyRow>("SELECT * FROM properties WHERE id = ? AND owner_id = ?")
+    .get(id, ownerId);
   return row ? toProperty(row) : undefined;
 }
 
-export function listUnits(): Unit[] {
-  return db.prepare<[], UnitRow>("SELECT * FROM units ORDER BY number").all().map(toUnit);
-}
-
-export function listUnitsForProperty(propertyId: string): Unit[] {
+export function listUnits(ownerId: string): Unit[] {
   return db
-    .prepare<[string], UnitRow>("SELECT * FROM units WHERE property_id = ? ORDER BY number")
-    .all(propertyId)
+    .prepare<[string], UnitRow>("SELECT * FROM units WHERE owner_id = ? ORDER BY number")
+    .all(ownerId)
     .map(toUnit);
 }
 
-export function listTenants(): Tenant[] {
+export function listUnitsForProperty(ownerId: string, propertyId: string): Unit[] {
   return db
-    .prepare<[], TenantRow>("SELECT * FROM tenants ORDER BY first_name, last_name")
-    .all()
+    .prepare<
+      [string, string],
+      UnitRow
+    >("SELECT * FROM units WHERE property_id = ? AND owner_id = ? ORDER BY number")
+    .all(propertyId, ownerId)
+    .map(toUnit);
+}
+
+export function listTenants(ownerId: string): Tenant[] {
+  return db
+    .prepare<[string], TenantRow>(
+      "SELECT * FROM tenants WHERE owner_id = ? ORDER BY first_name, last_name"
+    )
+    .all(ownerId)
     .map(toTenant);
 }
 
-export function getTenant(id: string): Tenant | undefined {
-  const row = db.prepare<[string], TenantRow>("SELECT * FROM tenants WHERE id = ?").get(id);
+export function getTenant(ownerId: string, id: string): Tenant | undefined {
+  const row = db
+    .prepare<[string, string], TenantRow>("SELECT * FROM tenants WHERE id = ? AND owner_id = ?")
+    .get(id, ownerId);
   return row ? toTenant(row) : undefined;
 }
 
-export function listLeases(): Lease[] {
-  return db.prepare<[], LeaseRow>("SELECT * FROM leases ORDER BY start_date DESC").all().map(toLease);
-}
-
-export function listLeasesForTenant(tenantId: string): Lease[] {
+export function listLeases(ownerId: string): Lease[] {
   return db
-    .prepare<[string], LeaseRow>("SELECT * FROM leases WHERE tenant_id = ? ORDER BY start_date DESC")
-    .all(tenantId)
+    .prepare<[string], LeaseRow>("SELECT * FROM leases WHERE owner_id = ? ORDER BY start_date DESC")
+    .all(ownerId)
     .map(toLease);
 }
 
-export function listPayments(): Payment[] {
-  return db.prepare<[], PaymentRow>("SELECT * FROM payments ORDER BY due_date DESC").all().map(toPayment);
+export function listLeasesForTenant(ownerId: string, tenantId: string): Lease[] {
+  return db
+    .prepare<
+      [string, string],
+      LeaseRow
+    >("SELECT * FROM leases WHERE tenant_id = ? AND owner_id = ? ORDER BY start_date DESC")
+    .all(tenantId, ownerId)
+    .map(toLease);
 }
 
-export function listPaymentsForLeases(leaseIds: string[]): Payment[] {
+export function listPayments(ownerId: string): Payment[] {
+  return db
+    .prepare<[string], PaymentRow>("SELECT * FROM payments WHERE owner_id = ? ORDER BY due_date DESC")
+    .all(ownerId)
+    .map(toPayment);
+}
+
+export function listPaymentsForLeases(ownerId: string, leaseIds: string[]): Payment[] {
   if (leaseIds.length === 0) return [];
   const placeholders = leaseIds.map(() => "?").join(",");
   return db
     .prepare<
       string[],
       PaymentRow
-    >(`SELECT * FROM payments WHERE lease_id IN (${placeholders}) ORDER BY due_date DESC`)
-    .all(...leaseIds)
+    >(`SELECT * FROM payments WHERE owner_id = ? AND lease_id IN (${placeholders}) ORDER BY due_date DESC`)
+    .all(ownerId, ...leaseIds)
     .map(toPayment);
 }
 
-export function listMaintenanceRequests(): MaintenanceRequest[] {
+export function listMaintenanceRequests(ownerId: string): MaintenanceRequest[] {
   return db
-    .prepare<[], MaintenanceRow>("SELECT * FROM maintenance_requests ORDER BY created_at DESC")
-    .all()
+    .prepare<
+      [string],
+      MaintenanceRow
+    >("SELECT * FROM maintenance_requests WHERE owner_id = ? ORDER BY created_at DESC")
+    .all(ownerId)
     .map(toMaintenance);
+}
+
+export function listBlogPosts(ownerId: string): BlogPost[] {
+  return db
+    .prepare<[string], BlogPostRow>(
+      "SELECT * FROM blog_posts WHERE owner_id = ? ORDER BY updated_at DESC"
+    )
+    .all(ownerId)
+    .map(toBlogPost);
+}
+
+export function getBlogPost(ownerId: string, id: string): BlogPost | undefined {
+  const row = db
+    .prepare<[string, string], BlogPostRow>("SELECT * FROM blog_posts WHERE id = ? AND owner_id = ?")
+    .get(id, ownerId);
+  return row ? toBlogPost(row) : undefined;
 }

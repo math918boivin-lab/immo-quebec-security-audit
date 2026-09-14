@@ -1,4 +1,5 @@
 import type {
+  BlogPostStatus,
   LeaseStatus,
   MaintenancePriority,
   MaintenanceStatus,
@@ -44,4 +45,9 @@ export const maintenancePriorityMeta: Record<MaintenancePriority, { label: strin
   moyenne: { label: "Moyenne", tone: "blue" },
   haute: { label: "Haute", tone: "amber" },
   urgente: { label: "Urgente", tone: "red" },
+};
+
+export const blogStatusMeta: Record<BlogPostStatus, { label: string; tone: Tone }> = {
+  brouillon: { label: "Brouillon", tone: "gray" },
+  publie: { label: "Publie", tone: "green" },
 };

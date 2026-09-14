@@ -9,7 +9,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <>
-      <Sidebar userEmail={user.email} />
+      <Sidebar userEmail={user.email} userName={user.name} />
       <div className="md:pl-64">
         <main className="mx-auto max-w-6xl px-4 py-6 pb-24 md:px-8 md:py-8 md:pb-8">{children}</main>
       </div>

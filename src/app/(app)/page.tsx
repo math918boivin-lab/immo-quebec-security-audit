@@ -14,6 +14,7 @@ import {
   listTenants,
   listUnits,
 } from "@/lib/data";
+import { requireAuth } from "@/lib/auth";
 import { StatCard } from "@/components/StatCard";
 import { RevenueChart } from "@/components/RevenueChart";
 import { Badge } from "@/components/Badge";
@@ -23,12 +24,13 @@ import { findProperty, findTenant, findUnit, tenantName, unitLabel } from "@/lib
 import { leaseStatusMeta, maintenancePriorityMeta } from "@/lib/statusMeta";
 
 export default async function DashboardPage() {
-  const properties = listProperties();
-  const units = listUnits();
-  const tenants = listTenants();
-  const leases = listLeases();
-  const payments = listPayments();
-  const maintenanceRequests = listMaintenanceRequests();
+  const user = await requireAuth();
+  const properties = listProperties(user.id);
+  const units = listUnits(user.id);
+  const tenants = listTenants(user.id);
+  const leases = listLeases(user.id);
+  const payments = listPayments(user.id);
+  const maintenanceRequests = listMaintenanceRequests(user.id);
 
   const occupiedUnits = units.filter((u) => u.status === "occupee").length;
   const occupancyRate = units.length ? Math.round((occupiedUnits / units.length) * 100) : 0;

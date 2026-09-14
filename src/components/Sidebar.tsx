@@ -8,6 +8,7 @@ import {
   FileText,
   LayoutDashboard,
   LogOut,
+  Newspaper,
   Users,
   Wrench,
   Building,
@@ -22,9 +23,10 @@ const links = [
   { href: "/baux", label: "Baux", icon: FileText },
   { href: "/paiements", label: "Paiements", icon: CreditCard },
   { href: "/maintenance", label: "Maintenance", icon: Wrench },
+  { href: "/blog", label: "Blog", icon: Newspaper },
 ];
 
-export function Sidebar({ userEmail }: { userEmail: string }) {
+export function Sidebar({ userEmail, userName }: { userEmail: string; userName: string }) {
   const pathname = usePathname();
 
   return (
@@ -60,7 +62,10 @@ export function Sidebar({ userEmail }: { userEmail: string }) {
         })}
       </nav>
       <div className="border-t border-gray-200 px-4 py-4">
-        <p className="truncate text-xs text-slate-500" title={userEmail}>
+        <p className="truncate text-sm font-medium text-slate-700" title={userEmail}>
+          {userName || userEmail}
+        </p>
+        <p className="truncate text-xs text-slate-400" title={userEmail}>
           {userEmail}
         </p>
         <form action={logoutAction}>

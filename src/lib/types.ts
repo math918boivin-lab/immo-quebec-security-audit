@@ -91,3 +91,14 @@ export interface MaintenanceRequest {
   createdAt: string; // ISO date
   resolvedAt?: string; // ISO date
 }
+
+export type BlogPostStatus = "brouillon" | "publie";
+
+export interface BlogPost {
+  id: string;
+  title: string;
+  content: string;
+  status: BlogPostStatus;
+  createdAt: string; // ISO date
+  updatedAt: string; // ISO date
+}
