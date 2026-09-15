@@ -12,7 +12,8 @@ Application web de gestion immobiliere (Quebec) construite avec Next.js, TypeScr
 - **Maintenance** : tableau des demandes d'entretien par statut (ouverte / en cours / resolue).
 - **Blog** : billets prives (brouillon / publie) propres a chaque compte.
 - **Multi-utilisateurs** : inscription libre (`/signup`) — chaque compte a son propre espace de donnees, totalement isole des autres.
-- **Pages legales** : politique de confidentialite, conditions d'utilisation et politique de remboursement, accessibles publiquement et liees depuis les pages de connexion/inscription.
+- **Pages legales** : politique de confidentialite, conditions d'utilisation, politique de remboursement et politique de temoins (cookies), accessibles publiquement et liees depuis les pages de connexion/inscription.
+- **Consentement explicite** : case a cocher obligatoire (validee cote serveur) a l'inscription pour accepter les conditions et la politique de confidentialite.
 
 ## Demarrage
 
@@ -46,6 +47,12 @@ Les donnees vivent dans une base SQLite locale (`data/app.db`, ignoree par git �
 - **Lecteurs d'ecran** : landmarks (`main`, `nav`), hierarchie de titres coherente, icones decoratives masquees (`aria-hidden`), erreurs de formulaire annoncees (`role="alert"`), champs de recherche et menus deroulants nommes explicitement.
 - **Images** : aucune image matricielle dans l'application (uniquement des icones vectorielles decoratives) — rien ne necessite de texte alternatif.
 - Verifie par une analyse automatisee (axe-core) sur toutes les pages, vides et remplies de donnees : aucune violation detectee.
+
+## Temoins (cookies) et suivi
+
+- **Aucun suivi** : aucun script d'analytique, publicitaire ou de reseau social; aucune requete vers un tiers; les polices sont integrees au site (pas de requete a Google au moment de la visite).
+- **Un seul temoin**, strictement necessaire (session de connexion `immo_session`) — voir `src/lib/auth.ts` et la [politique de temoins](/politique-de-temoins). Aucun bandeau « accepter/refuser » n'est requis (article 8.1 de la Loi 25 du Quebec exempte les temoins necessaires a la fourniture du service demande), mais un avis informatif non bloquant est affiche sur les pages de connexion/inscription pour la transparence.
+- **Consentement explicite** a l'inscription (case a cocher validee cote serveur) pour la collecte de renseignements personnels, conformement a la Loi 25.
 
 ## Stack technique
 

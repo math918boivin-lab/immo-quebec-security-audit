@@ -57,6 +57,7 @@ export async function signupAction(
     email: formData.get("email"),
     password: formData.get("password"),
     confirmPassword: formData.get("confirmPassword"),
+    consent: formData.get("consent"),
   });
 
   if (!parsed.success) {
@@ -66,6 +67,9 @@ export async function signupAction(
     }
     if (first?.path[0] === "password") {
       return { error: `Le mot de passe doit contenir au moins ${MIN_PASSWORD_LENGTH} caracteres.` };
+    }
+    if (first?.path[0] === "consent") {
+      return { error: "Vous devez accepter les conditions d'utilisation et la politique de confidentialite." };
     }
     return { error: "Veuillez remplir correctement tous les champs." };
   }

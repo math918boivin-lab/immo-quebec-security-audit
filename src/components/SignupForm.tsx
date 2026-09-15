@@ -6,6 +6,7 @@ import { Building, AlertCircle } from "lucide-react";
 import { signupAction, type SignupFormState } from "@/lib/auth-actions";
 import { inputClass, PrimaryButton } from "@/components/form";
 import { LegalFooterLinks } from "@/components/LegalLayout";
+import { CookieNotice } from "@/components/CookieNotice";
 
 const initialState: SignupFormState = {};
 
@@ -75,20 +76,32 @@ export function SignupForm() {
               className={inputClass}
             />
           </label>
+          <label className="flex items-start gap-2 text-xs text-slate-600">
+            <input
+              type="checkbox"
+              name="consent"
+              required
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500"
+            />
+            <span>
+              J&apos;ai lu et j&apos;accepte les{" "}
+              <Link href="/conditions-utilisation" className="text-slate-700 underline hover:text-slate-900">
+                conditions d&apos;utilisation
+              </Link>
+              , la{" "}
+              <Link href="/politique-de-confidentialite" className="text-slate-700 underline hover:text-slate-900">
+                politique de confidentialite
+              </Link>{" "}
+              et la{" "}
+              <Link href="/politique-de-temoins" className="text-slate-700 underline hover:text-slate-900">
+                politique de temoins
+              </Link>
+              .
+            </span>
+          </label>
           <PrimaryButton type="submit" disabled={pending} className="w-full">
             {pending ? "Creation..." : "Creer mon compte"}
           </PrimaryButton>
-          <p className="text-center text-xs text-slate-500">
-            En creant un compte, vous acceptez nos{" "}
-            <Link href="/conditions-utilisation" className="text-slate-700 underline hover:text-slate-900">
-              conditions d&apos;utilisation
-            </Link>{" "}
-            et notre{" "}
-            <Link href="/politique-de-confidentialite" className="text-slate-700 underline hover:text-slate-900">
-              politique de confidentialite
-            </Link>
-            .
-          </p>
           <p className="text-center text-sm text-slate-500">
             Deja un compte ?{" "}
             <Link href="/login" className="font-medium text-slate-900 hover:underline">
@@ -98,6 +111,7 @@ export function SignupForm() {
         </form>
       </div>
       <LegalFooterLinks />
+      <CookieNotice />
     </main>
   );
 }

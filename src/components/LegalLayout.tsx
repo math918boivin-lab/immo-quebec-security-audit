@@ -59,6 +59,9 @@ export function LegalFooterLinks() {
       <Link href="/politique-de-remboursement" className="hover:text-slate-900 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500 rounded">
         Politique de remboursement
       </Link>
+      <Link href="/politique-de-temoins" className="hover:text-slate-900 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500 rounded">
+        Temoins (cookies)
+      </Link>
     </nav>
   );
 }

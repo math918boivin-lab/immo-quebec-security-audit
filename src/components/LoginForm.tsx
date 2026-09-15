@@ -6,6 +6,7 @@ import { Building, AlertCircle } from "lucide-react";
 import { loginAction, type LoginFormState } from "@/lib/auth-actions";
 import { inputClass, PrimaryButton } from "@/components/form";
 import { LegalFooterLinks } from "@/components/LegalLayout";
+import { CookieNotice } from "@/components/CookieNotice";
 
 const initialState: LoginFormState = {};
 
@@ -63,6 +64,7 @@ export function LoginForm() {
         </form>
       </div>
       <LegalFooterLinks />
+      <CookieNotice />
     </main>
   );
 }

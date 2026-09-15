@@ -108,6 +108,9 @@ export const signupSchema = z
     email: z.string().trim().email().max(200),
     password: z.string().min(12).max(200),
     confirmPassword: z.string().min(1).max(200),
+    consent: z.literal("on", {
+      message: "Vous devez accepter les conditions d'utilisation et la politique de confidentialite.",
+    }),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Les mots de passe ne correspondent pas.",

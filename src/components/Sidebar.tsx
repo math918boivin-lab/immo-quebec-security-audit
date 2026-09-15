@@ -88,6 +88,9 @@ export function Sidebar({ userEmail, userName }: { userEmail: string; userName: 
           <Link href="/politique-de-remboursement" className="hover:text-slate-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500 rounded">
             Remboursement
           </Link>
+          <Link href="/politique-de-temoins" className="hover:text-slate-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500 rounded">
+            Temoins
+          </Link>
         </nav>
       </div>
     </aside>
