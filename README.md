@@ -1,6 +1,6 @@
 # Immo Gestion
 
-Application web de gestion immobiliere (Quebec) construite avec Next.js, TypeScript et Tailwind CSS. Toutes les donnees sont stockees cote serveur (SQLite) derriere une authentification obligatoire.
+Application web de gestion immobiliere (Quebec) construite avec Next.js, TypeScript et Tailwind CSS. Toutes les donnees sont stockees cote serveur (PostgreSQL) derriere une authentification obligatoire. Concue pour un deploiement serverless (Vercel).
 
 ## Fonctionnalites
 
@@ -19,15 +19,25 @@ Application web de gestion immobiliere (Quebec) construite avec Next.js, TypeScr
 
 ```bash
 npm install
-cp .env.example .env.local   # optionnel : ADMIN_EMAIL / ADMIN_PASSWORD pour un compte de demo pre-rempli
+cp .env.example .env.local   # renseignez POSTGRES_URL (voir ci-dessous) ; ADMIN_EMAIL/ADMIN_PASSWORD sont optionnels
 npm run dev
 ```
+
+L'application requiert une base **PostgreSQL** (variable `POSTGRES_URL`). Les tables sont creees automatiquement au demarrage (`src/lib/db.ts`, migrations idempotentes) — aucune commande de migration a lancer a la main.
+
+- **En local** : pointez `POSTGRES_URL` vers une instance Postgres locale ou de developpement.
+- **Sur Vercel** : connectez une base **Vercel Postgres** depuis l'onglet *Storage* du projet — la variable `POSTGRES_URL` est alors injectee automatiquement, rien a configurer manuellement.
 
 L'application est disponible sur [http://localhost:3000](http://localhost:3000). Vous serez redirige vers `/login`, avec un lien pour creer un compte (`/signup`).
 
 Si `ADMIN_EMAIL`/`ADMIN_PASSWORD` sont definis et qu'aucun utilisateur n'existe encore, le serveur cree au premier demarrage un compte de demonstration pre-rempli avec des donnees fictives (mot de passe hache avec bcrypt avant stockage). Ce n'est qu'une commodite pour explorer l'application : n'importe qui peut aussi simplement creer son propre compte via `/signup`, qui demarre avec un espace de donnees vide et prive.
 
-Les donnees vivent dans une base SQLite locale (`data/app.db`, ignoree par git — ne jamais la committer).
+## Deployer sur Vercel
+
+1. Importez ce depot dans [Vercel](https://vercel.com/new).
+2. Dans l'onglet **Storage** du projet, ajoutez une base **Postgres** (Neon, integree a Vercel) et connectez-la au projet — la variable `POSTGRES_URL` est injectee automatiquement, aucune configuration manuelle requise.
+3. (Optionnel) Ajoutez `ADMIN_EMAIL`/`ADMIN_PASSWORD` dans les variables d'environnement du projet pour obtenir un compte de demonstration pre-rempli des le premier demarrage.
+4. Deployez. Les tables sont creees automatiquement au premier appel du serveur (aucune commande de migration a executer).
 
 ## Securite
 
@@ -38,7 +48,7 @@ Les donnees vivent dans une base SQLite locale (`data/app.db`, ignoree par git �
 - **Protection contre le brute-force** : verrouillage du compte pendant 15 minutes apres 5 echecs de connexion consecutifs.
 - **Toutes les mutations** passent par des Server Actions Next.js qui revalident l'authentification et valident chaque champ avec [Zod](https://zod.dev/) avant d'ecrire en base (requetes SQL parametrees uniquement, aucune concatenation de chaines).
 - **En-tetes de securite** (`src/proxy.ts`) : Content-Security-Policy stricte avec nonce par requete, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security`.
-- **Donnees jamais exposees au client** : la base SQLite n'est accedee que depuis des modules marques `server-only`.
+- **Donnees jamais exposees au client** : la base Postgres n'est accedee que depuis des modules marques `server-only`.
 
 ## Accessibilite
 
@@ -59,7 +69,7 @@ Les donnees vivent dans une base SQLite locale (`data/app.db`, ignoree par git �
 - [Next.js](https://nextjs.org/) (App Router, Server Actions)
 - [TypeScript](https://www.typescriptlang.org/)
 - [Tailwind CSS](https://tailwindcss.com/)
-- [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) (base de donnees serveur)
+- [PostgreSQL](https://www.postgresql.org/) via [node-postgres (`pg`)](https://node-postgres.com/) (base de donnees serveur, compatible Vercel Postgres)
 - [bcryptjs](https://github.com/dcodeIO/bcrypt.js) (hachage des mots de passe)
 - [Zod](https://zod.dev/) (validation des entrees)
 - [Recharts](https://recharts.org/) (graphiques)

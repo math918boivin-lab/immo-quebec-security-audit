@@ -7,7 +7,7 @@ import { PropertyDetailClient } from "./PropertyDetailClient";
 export default async function PropertyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireAuth();
-  const property = getProperty(user.id, id);
+  const property = await getProperty(user.id, id);
 
   if (!property) {
     return (
@@ -20,9 +20,11 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
     );
   }
 
-  const units = listUnitsForProperty(user.id, id);
-  const leases = listLeases(user.id);
-  const tenants = listTenants(user.id);
+  const [units, leases, tenants] = await Promise.all([
+    listUnitsForProperty(user.id, id),
+    listLeases(user.id),
+    listTenants(user.id),
+  ]);
 
   return <PropertyDetailClient property={property} units={units} leases={leases} tenants={tenants} />;
 }

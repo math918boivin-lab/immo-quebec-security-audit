@@ -4,9 +4,11 @@ import { MaintenanceClient } from "./MaintenanceClient";
 
 export default async function MaintenancePage() {
   const user = await requireAuth();
-  const requests = listMaintenanceRequests(user.id);
-  const units = listUnits(user.id);
-  const properties = listProperties(user.id);
+  const [requests, units, properties] = await Promise.all([
+    listMaintenanceRequests(user.id),
+    listUnits(user.id),
+    listProperties(user.id),
+  ]);
 
   return <MaintenanceClient requests={requests} units={units} properties={properties} />;
 }

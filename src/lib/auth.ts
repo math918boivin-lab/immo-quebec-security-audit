@@ -2,7 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
-import { db, makeId } from "./db";
+import { makeId, query, queryOne } from "./db";
 
 const SESSION_COOKIE = "immo_session";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 jours
@@ -39,9 +39,7 @@ export type LoginResult =
 
 export async function attemptLogin(email: string, password: string): Promise<LoginResult> {
   const normalizedEmail = email.trim().toLowerCase();
-  const user = db
-    .prepare<[string], UserRow>("SELECT * FROM users WHERE email = ?")
-    .get(normalizedEmail);
+  const user = await queryOne<UserRow>("SELECT * FROM users WHERE email = $1", [normalizedEmail]);
 
   // Toujours effectuer un hash pour eviter de reveler par le temps de reponse
   // si le compte existe ou non (attenuation d'attaque par canal temporel).
@@ -62,18 +60,18 @@ export async function attemptLogin(email: string, password: string): Promise<Log
     const attempts = user.failed_attempts + 1;
     if (attempts >= MAX_FAILED_ATTEMPTS) {
       const lockedUntil = new Date(Date.now() + LOCKOUT_MS).toISOString();
-      db.prepare("UPDATE users SET failed_attempts = ?, locked_until = ? WHERE id = ?").run(
+      await query("UPDATE users SET failed_attempts = $1, locked_until = $2 WHERE id = $3", [
         attempts,
         lockedUntil,
-        user.id
-      );
+        user.id,
+      ]);
       return { ok: false, reason: "locked" };
     }
-    db.prepare("UPDATE users SET failed_attempts = ? WHERE id = ?").run(attempts, user.id);
+    await query("UPDATE users SET failed_attempts = $1 WHERE id = $2", [attempts, user.id]);
     return { ok: false, reason: "invalid" };
   }
 
-  db.prepare("UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE id = ?").run(user.id);
+  await query("UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE id = $1", [user.id]);
   await createSession(user.id);
   return { ok: true };
 }
@@ -93,9 +91,7 @@ export async function registerUser(
     return { ok: false, reason: "weak_password" };
   }
 
-  const existing = db
-    .prepare<[string], { id: string }>("SELECT id FROM users WHERE email = ?")
-    .get(normalizedEmail);
+  const existing = await queryOne<{ id: string }>("SELECT id FROM users WHERE email = $1", [normalizedEmail]);
   if (existing) {
     return { ok: false, reason: "email_taken" };
   }
@@ -103,17 +99,17 @@ export async function registerUser(
   const passwordHash = await hashPassword(password);
   const userId = makeId("user");
   try {
-    db.prepare("INSERT INTO users (id, name, email, password_hash) VALUES (?, ?, ?, ?)").run(
+    await query("INSERT INTO users (id, name, email, password_hash) VALUES ($1, $2, $3, $4)", [
       userId,
       name.trim(),
       normalizedEmail,
-      passwordHash
-    );
+      passwordHash,
+    ]);
   } catch (err) {
     // Deux inscriptions concurrentes avec le meme courriel peuvent toutes
     // deux franchir la verification d'unicite ci-dessus avant d'ecrire;
     // la contrainte UNIQUE sur users.email rejette la seconde ecriture.
-    if (err instanceof Error && /UNIQUE/i.test(err.message)) {
+    if (err instanceof Error && /unique/i.test(err.message)) {
       return { ok: false, reason: "email_taken" };
     }
     throw err;
@@ -128,9 +124,12 @@ export async function createSession(userId: string): Promise<void> {
   const tokenHash = hashToken(token);
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS).toISOString();
 
-  db.prepare(
-    "INSERT INTO sessions (id, token_hash, user_id, expires_at) VALUES (?, ?, ?, ?)"
-  ).run(makeId("sess"), tokenHash, userId, expiresAt);
+  await query("INSERT INTO sessions (id, token_hash, user_id, expires_at) VALUES ($1, $2, $3, $4)", [
+    makeId("sess"),
+    tokenHash,
+    userId,
+    expiresAt,
+  ]);
 
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, token, {
@@ -148,21 +147,17 @@ export async function getSession(): Promise<SessionUser | null> {
   if (!token) return null;
 
   const tokenHash = hashToken(token);
-  const row = db
-    .prepare<
-      [string],
-      { user_id: string; expires_at: string; email: string; name: string }
-    >(
-      `SELECT sessions.user_id as user_id, sessions.expires_at as expires_at,
-              users.email as email, users.name as name
-       FROM sessions JOIN users ON users.id = sessions.user_id
-       WHERE sessions.token_hash = ?`
-    )
-    .get(tokenHash);
+  const row = await queryOne<{ user_id: string; expires_at: string; email: string; name: string }>(
+    `SELECT sessions.user_id as user_id, sessions.expires_at as expires_at,
+            users.email as email, users.name as name
+     FROM sessions JOIN users ON users.id = sessions.user_id
+     WHERE sessions.token_hash = $1`,
+    [tokenHash]
+  );
 
   if (!row) return null;
   if (new Date(row.expires_at).getTime() < Date.now()) {
-    db.prepare("DELETE FROM sessions WHERE token_hash = ?").run(tokenHash);
+    await query("DELETE FROM sessions WHERE token_hash = $1", [tokenHash]);
     return null;
   }
 
@@ -173,7 +168,7 @@ export async function destroySession(): Promise<void> {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (token) {
-    db.prepare("DELETE FROM sessions WHERE token_hash = ?").run(hashToken(token));
+    await query("DELETE FROM sessions WHERE token_hash = $1", [hashToken(token)]);
   }
   cookieStore.delete(SESSION_COOKIE);
 }
@@ -194,8 +189,8 @@ export async function requireAuth(): Promise<SessionUser> {
  * L'inscription libre (src/lib/auth-actions.ts:registerAction) reste le
  * chemin normal pour creer des comptes ensuite.
  */
-export function ensureAdminUser(): string | null {
-  const existing = db.prepare("SELECT id FROM users LIMIT 1").get();
+export async function ensureAdminUser(): Promise<string | null> {
+  const existing = await queryOne<{ id: string }>("SELECT id FROM users LIMIT 1");
   if (existing) return null;
 
   const email = process.env.ADMIN_EMAIL;
@@ -212,14 +207,14 @@ export function ensureAdminUser(): string | null {
     return null;
   }
 
-  const passwordHash = bcrypt.hashSync(password, 12);
+  const passwordHash = await bcrypt.hash(password, 12);
   const userId = makeId("user");
-  db.prepare("INSERT INTO users (id, name, email, password_hash) VALUES (?, ?, ?, ?)").run(
+  await query("INSERT INTO users (id, name, email, password_hash) VALUES ($1, $2, $3, $4)", [
     userId,
     "Admin",
     email.trim().toLowerCase(),
-    passwordHash
-  );
+    passwordHash,
+  ]);
   console.warn(`[auth] Compte administrateur cree pour ${email}.`);
   return userId;
 }

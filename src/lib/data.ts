@@ -1,5 +1,5 @@
 import "server-only";
-import { db } from "./db";
+import { query, queryOne } from "./db";
 import type {
   BlogPost,
   Lease,
@@ -170,111 +170,88 @@ function toBlogPost(r: BlogPostRow): BlogPost {
   };
 }
 
-export function listProperties(ownerId: string): Property[] {
-  return db
-    .prepare<[string], PropertyRow>("SELECT * FROM properties WHERE owner_id = ? ORDER BY name")
-    .all(ownerId)
-    .map(toProperty);
+export async function listProperties(ownerId: string): Promise<Property[]> {
+  const rows = await query<PropertyRow>("SELECT * FROM properties WHERE owner_id = $1 ORDER BY name", [ownerId]);
+  return rows.map(toProperty);
 }
 
-export function getProperty(ownerId: string, id: string): Property | undefined {
-  const row = db
-    .prepare<[string, string], PropertyRow>("SELECT * FROM properties WHERE id = ? AND owner_id = ?")
-    .get(id, ownerId);
+export async function getProperty(ownerId: string, id: string): Promise<Property | undefined> {
+  const row = await queryOne<PropertyRow>("SELECT * FROM properties WHERE id = $1 AND owner_id = $2", [id, ownerId]);
   return row ? toProperty(row) : undefined;
 }
 
-export function listUnits(ownerId: string): Unit[] {
-  return db
-    .prepare<[string], UnitRow>("SELECT * FROM units WHERE owner_id = ? ORDER BY number")
-    .all(ownerId)
-    .map(toUnit);
+export async function listUnits(ownerId: string): Promise<Unit[]> {
+  const rows = await query<UnitRow>("SELECT * FROM units WHERE owner_id = $1 ORDER BY number", [ownerId]);
+  return rows.map(toUnit);
 }
 
-export function listUnitsForProperty(ownerId: string, propertyId: string): Unit[] {
-  return db
-    .prepare<
-      [string, string],
-      UnitRow
-    >("SELECT * FROM units WHERE property_id = ? AND owner_id = ? ORDER BY number")
-    .all(propertyId, ownerId)
-    .map(toUnit);
+export async function listUnitsForProperty(ownerId: string, propertyId: string): Promise<Unit[]> {
+  const rows = await query<UnitRow>(
+    "SELECT * FROM units WHERE property_id = $1 AND owner_id = $2 ORDER BY number",
+    [propertyId, ownerId]
+  );
+  return rows.map(toUnit);
 }
 
-export function listTenants(ownerId: string): Tenant[] {
-  return db
-    .prepare<[string], TenantRow>(
-      "SELECT * FROM tenants WHERE owner_id = ? ORDER BY first_name, last_name"
-    )
-    .all(ownerId)
-    .map(toTenant);
+export async function listTenants(ownerId: string): Promise<Tenant[]> {
+  const rows = await query<TenantRow>(
+    "SELECT * FROM tenants WHERE owner_id = $1 ORDER BY first_name, last_name",
+    [ownerId]
+  );
+  return rows.map(toTenant);
 }
 
-export function getTenant(ownerId: string, id: string): Tenant | undefined {
-  const row = db
-    .prepare<[string, string], TenantRow>("SELECT * FROM tenants WHERE id = ? AND owner_id = ?")
-    .get(id, ownerId);
+export async function getTenant(ownerId: string, id: string): Promise<Tenant | undefined> {
+  const row = await queryOne<TenantRow>("SELECT * FROM tenants WHERE id = $1 AND owner_id = $2", [id, ownerId]);
   return row ? toTenant(row) : undefined;
 }
 
-export function listLeases(ownerId: string): Lease[] {
-  return db
-    .prepare<[string], LeaseRow>("SELECT * FROM leases WHERE owner_id = ? ORDER BY start_date DESC")
-    .all(ownerId)
-    .map(toLease);
+export async function listLeases(ownerId: string): Promise<Lease[]> {
+  const rows = await query<LeaseRow>("SELECT * FROM leases WHERE owner_id = $1 ORDER BY start_date DESC", [ownerId]);
+  return rows.map(toLease);
 }
 
-export function listLeasesForTenant(ownerId: string, tenantId: string): Lease[] {
-  return db
-    .prepare<
-      [string, string],
-      LeaseRow
-    >("SELECT * FROM leases WHERE tenant_id = ? AND owner_id = ? ORDER BY start_date DESC")
-    .all(tenantId, ownerId)
-    .map(toLease);
+export async function listLeasesForTenant(ownerId: string, tenantId: string): Promise<Lease[]> {
+  const rows = await query<LeaseRow>(
+    "SELECT * FROM leases WHERE tenant_id = $1 AND owner_id = $2 ORDER BY start_date DESC",
+    [tenantId, ownerId]
+  );
+  return rows.map(toLease);
 }
 
-export function listPayments(ownerId: string): Payment[] {
-  return db
-    .prepare<[string], PaymentRow>("SELECT * FROM payments WHERE owner_id = ? ORDER BY due_date DESC")
-    .all(ownerId)
-    .map(toPayment);
+export async function listPayments(ownerId: string): Promise<Payment[]> {
+  const rows = await query<PaymentRow>("SELECT * FROM payments WHERE owner_id = $1 ORDER BY due_date DESC", [
+    ownerId,
+  ]);
+  return rows.map(toPayment);
 }
 
-export function listPaymentsForLeases(ownerId: string, leaseIds: string[]): Payment[] {
+export async function listPaymentsForLeases(ownerId: string, leaseIds: string[]): Promise<Payment[]> {
   if (leaseIds.length === 0) return [];
-  const placeholders = leaseIds.map(() => "?").join(",");
-  return db
-    .prepare<
-      string[],
-      PaymentRow
-    >(`SELECT * FROM payments WHERE owner_id = ? AND lease_id IN (${placeholders}) ORDER BY due_date DESC`)
-    .all(ownerId, ...leaseIds)
-    .map(toPayment);
+  const placeholders = leaseIds.map((_, i) => `$${i + 2}`).join(",");
+  const rows = await query<PaymentRow>(
+    `SELECT * FROM payments WHERE owner_id = $1 AND lease_id IN (${placeholders}) ORDER BY due_date DESC`,
+    [ownerId, ...leaseIds]
+  );
+  return rows.map(toPayment);
 }
 
-export function listMaintenanceRequests(ownerId: string): MaintenanceRequest[] {
-  return db
-    .prepare<
-      [string],
-      MaintenanceRow
-    >("SELECT * FROM maintenance_requests WHERE owner_id = ? ORDER BY created_at DESC")
-    .all(ownerId)
-    .map(toMaintenance);
+export async function listMaintenanceRequests(ownerId: string): Promise<MaintenanceRequest[]> {
+  const rows = await query<MaintenanceRow>(
+    "SELECT * FROM maintenance_requests WHERE owner_id = $1 ORDER BY created_at DESC",
+    [ownerId]
+  );
+  return rows.map(toMaintenance);
 }
 
-export function listBlogPosts(ownerId: string): BlogPost[] {
-  return db
-    .prepare<[string], BlogPostRow>(
-      "SELECT * FROM blog_posts WHERE owner_id = ? ORDER BY updated_at DESC"
-    )
-    .all(ownerId)
-    .map(toBlogPost);
+export async function listBlogPosts(ownerId: string): Promise<BlogPost[]> {
+  const rows = await query<BlogPostRow>("SELECT * FROM blog_posts WHERE owner_id = $1 ORDER BY updated_at DESC", [
+    ownerId,
+  ]);
+  return rows.map(toBlogPost);
 }
 
-export function getBlogPost(ownerId: string, id: string): BlogPost | undefined {
-  const row = db
-    .prepare<[string, string], BlogPostRow>("SELECT * FROM blog_posts WHERE id = ? AND owner_id = ?")
-    .get(id, ownerId);
+export async function getBlogPost(ownerId: string, id: string): Promise<BlogPost | undefined> {
+  const row = await queryOne<BlogPostRow>("SELECT * FROM blog_posts WHERE id = $1 AND owner_id = $2", [id, ownerId]);
   return row ? toBlogPost(row) : undefined;
 }

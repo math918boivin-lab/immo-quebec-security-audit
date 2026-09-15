@@ -13,7 +13,7 @@ import { TenantDetailClient } from "./TenantDetailClient";
 export default async function TenantDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireAuth();
-  const tenant = getTenant(user.id, id);
+  const tenant = await getTenant(user.id, id);
 
   if (!tenant) {
     return (
@@ -26,13 +26,14 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
     );
   }
 
-  const leases = listLeasesForTenant(user.id, id);
-  const payments = listPaymentsForLeases(
-    user.id,
-    leases.map((l) => l.id)
-  ).sort((a, b) => b.dueDate.localeCompare(a.dueDate));
-  const units = listUnits(user.id);
-  const properties = listProperties(user.id);
+  const [leases, units, properties] = await Promise.all([
+    listLeasesForTenant(user.id, id),
+    listUnits(user.id),
+    listProperties(user.id),
+  ]);
+  const payments = (await listPaymentsForLeases(user.id, leases.map((l) => l.id))).sort((a, b) =>
+    b.dueDate.localeCompare(a.dueDate)
+  );
 
   return (
     <TenantDetailClient tenant={tenant} leases={leases} units={units} properties={properties} payments={payments} />

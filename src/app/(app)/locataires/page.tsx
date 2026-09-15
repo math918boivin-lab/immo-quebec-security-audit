@@ -4,10 +4,12 @@ import { TenantsClient } from "./TenantsClient";
 
 export default async function TenantsPage() {
   const user = await requireAuth();
-  const tenants = listTenants(user.id);
-  const leases = listLeases(user.id);
-  const units = listUnits(user.id);
-  const properties = listProperties(user.id);
+  const [tenants, leases, units, properties] = await Promise.all([
+    listTenants(user.id),
+    listLeases(user.id),
+    listUnits(user.id),
+    listProperties(user.id),
+  ]);
 
   return <TenantsClient tenants={tenants} leases={leases} units={units} properties={properties} />;
 }

@@ -7,7 +7,7 @@ import { BlogEditor } from "../BlogEditor";
 export default async function EditBlogPostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireAuth();
-  const post = getBlogPost(user.id, id);
+  const post = await getBlogPost(user.id, id);
 
   if (!post) {
     return (

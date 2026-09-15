@@ -25,12 +25,14 @@ import { leaseStatusMeta, maintenancePriorityMeta } from "@/lib/statusMeta";
 
 export default async function DashboardPage() {
   const user = await requireAuth();
-  const properties = listProperties(user.id);
-  const units = listUnits(user.id);
-  const tenants = listTenants(user.id);
-  const leases = listLeases(user.id);
-  const payments = listPayments(user.id);
-  const maintenanceRequests = listMaintenanceRequests(user.id);
+  const [properties, units, tenants, leases, payments, maintenanceRequests] = await Promise.all([
+    listProperties(user.id),
+    listUnits(user.id),
+    listTenants(user.id),
+    listLeases(user.id),
+    listPayments(user.id),
+    listMaintenanceRequests(user.id),
+  ]);
 
   const occupiedUnits = units.filter((u) => u.status === "occupee").length;
   const occupancyRate = units.length ? Math.round((occupiedUnits / units.length) * 100) : 0;
