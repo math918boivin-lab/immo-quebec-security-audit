@@ -1,6 +1,6 @@
 # Immo Gestion
 
-Application web de gestion immobiliere (Quebec) construite avec Next.js, TypeScript et Tailwind CSS. Toutes les donnees sont stockees cote serveur (PostgreSQL) derriere une authentification obligatoire. Concue pour un deploiement serverless (Vercel).
+Application web de gestion immobiliere (Quebec) construite avec Next.js, TypeScript et Tailwind CSS. Toutes les donnees sont stockees cote serveur (PostgreSQL) derriere une authentification obligatoire.
 
 ## Fonctionnalites
 
@@ -32,12 +32,23 @@ L'application est disponible sur [http://localhost:3000](http://localhost:3000).
 
 Si `ADMIN_EMAIL`/`ADMIN_PASSWORD` sont definis et qu'aucun utilisateur n'existe encore, le serveur cree au premier demarrage un compte de demonstration pre-rempli avec des donnees fictives (mot de passe hache avec bcrypt avant stockage). Ce n'est qu'une commodite pour explorer l'application : n'importe qui peut aussi simplement creer son propre compte via `/signup`, qui demarre avec un espace de donnees vide et prive.
 
-## Deployer sur Vercel
+## Deployer gratuitement (Render + Neon)
 
-1. Importez ce depot dans [Vercel](https://vercel.com/new).
-2. Dans l'onglet **Storage** du projet, ajoutez une base **Postgres** (Neon, integree a Vercel) et connectez-la au projet — la variable `POSTGRES_URL` est injectee automatiquement, aucune configuration manuelle requise.
-3. (Optionnel) Ajoutez `ADMIN_EMAIL`/`ADMIN_PASSWORD` dans les variables d'environnement du projet pour obtenir un compte de demonstration pre-rempli des le premier demarrage.
-4. Deployez. Les tables sont creees automatiquement au premier appel du serveur (aucune commande de migration a executer).
+Aucune carte de credit requise sur l'un ou l'autre service pour ce niveau d'usage.
+
+**1. Base de donnees (Neon, gratuit) :**
+1. Creez un compte sur [neon.tech](https://neon.tech) et un nouveau projet.
+2. Copiez la chaine de connexion fournie (bouton *Connect*) — elle ressemble a `postgres://user:password@ep-xxx.neon.tech/dbname?sslmode=require`.
+
+**2. Application (Render, gratuit) :**
+1. Creez un compte sur [render.com](https://render.com) et connectez votre compte GitHub.
+2. *New* → *Blueprint*, selectionnez ce depot. Render detecte automatiquement `render.yaml` et configure le service.
+3. Quand demande, collez la chaine de connexion Neon dans la variable `POSTGRES_URL`. Ajoutez `ADMIN_EMAIL`/`ADMIN_PASSWORD` si vous voulez un compte de demonstration pre-rempli.
+4. Deployez. Les tables sont creees automatiquement au premier demarrage (aucune commande de migration a executer).
+
+Le plan gratuit de Render met le service en veille apres 15 minutes d'inactivite ; la premiere requete apres une periode d'inactivite prend ~30 secondes a repondre (redemarrage), les suivantes sont normales.
+
+Cette combinaison n'est pas la seule possible : n'importe quel hebergeur Node.js (Railway, Fly.io, etc.) et n'importe quel fournisseur Postgres (Supabase, Vercel Postgres, etc.) fonctionnent aussi — l'application ne depend que de la variable `POSTGRES_URL`.
 
 ## Securite
 
