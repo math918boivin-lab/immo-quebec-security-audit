@@ -17,7 +17,7 @@ export function StatCard({
   const toneClasses: Record<string, string> = {
     slate: "bg-slate-900 text-white",
     green: "bg-emerald-600 text-white",
-    amber: "bg-amber-500 text-white",
+    amber: "bg-amber-600 text-white",
     red: "bg-red-600 text-white",
     blue: "bg-blue-600 text-white",
   };
@@ -28,9 +28,12 @@ export function StatCard({
         <div>
           <p className="text-sm text-slate-500">{label}</p>
           <p className="mt-2 text-2xl font-semibold text-slate-900">{value}</p>
-          {hint && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
+          {hint && <p className="mt-1 text-xs text-slate-500">{hint}</p>}
         </div>
-        <div className={clsx("flex h-10 w-10 items-center justify-center rounded-lg", toneClasses[tone])}>
+        <div
+          className={clsx("flex h-10 w-10 items-center justify-center rounded-lg", toneClasses[tone])}
+          aria-hidden="true"
+        >
           <Icon className="h-5 w-5" />
         </div>
       </div>

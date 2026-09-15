@@ -55,26 +55,26 @@ export function BlogListClient({ posts }: { posts: BlogPost[] }) {
           >
             <button
               onClick={() => setToDelete(post)}
-              className="absolute right-4 top-4 rounded-md p-1.5 text-slate-300 opacity-0 hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
-              aria-label="Supprimer"
+              className="absolute right-4 top-4 rounded-md p-1.5 text-slate-400 opacity-0 hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+              aria-label={`Supprimer le billet "${post.title}"`}
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
             </button>
             <Link href={`/blog/${post.id}`}>
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100" aria-hidden="true">
                 <Newspaper className="h-5 w-5 text-slate-600" />
               </div>
-              <h3 className="mt-3 font-semibold text-slate-900 pr-6">{post.title}</h3>
+              <h2 className="mt-3 font-semibold text-slate-900 pr-6">{post.title}</h2>
               <p className="mt-1 text-sm text-slate-500">{excerpt(post.content)}</p>
               <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4 text-sm">
                 <Badge tone={blogStatusMeta[post.status].tone}>{blogStatusMeta[post.status].label}</Badge>
-                <span className="text-slate-400">{formatDate(post.updatedAt.slice(0, 10))}</span>
+                <span className="text-slate-500">{formatDate(post.updatedAt.slice(0, 10))}</span>
               </div>
             </Link>
           </div>
         ))}
         {posts.length === 0 && (
-          <p className="col-span-full py-8 text-center text-slate-400">
+          <p className="col-span-full py-8 text-center text-slate-500">
             Aucun billet pour le moment. Creez votre premier billet.
           </p>
         )}

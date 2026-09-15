@@ -110,12 +110,13 @@ export function LeasesClient({
         }
       />
 
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Filtrer les baux par statut">
         {(["all", "actif", "a_renouveler", "expire", "resilie"] as const).map((s) => (
           <button
             key={s}
             onClick={() => setFilter(s)}
-            className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+            aria-pressed={filter === s}
+            className={`rounded-full px-3 py-1.5 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500 ${
               filter === s ? "bg-slate-900 text-white" : "bg-white text-slate-600 ring-1 ring-inset ring-gray-200 hover:bg-slate-50"
             }`}
           >
@@ -134,7 +135,9 @@ export function LeasesClient({
               <th className="px-4 py-3">Fin</th>
               <th className="px-4 py-3">Loyer</th>
               <th className="px-4 py-3">Statut</th>
-              <th className="px-4 py-3"></th>
+              <th className="px-4 py-3">
+                <span className="sr-only">Actions</span>
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -156,17 +159,17 @@ export function LeasesClient({
                     <div className="flex justify-end gap-1">
                       <button
                         onClick={() => openEdit(lease)}
-                        className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                        aria-label="Modifier"
+                        className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500"
+                        aria-label={`Modifier le bail de ${tenantName(tenant)}`}
                       >
-                        <Pencil className="h-4 w-4" />
+                        <Pencil className="h-4 w-4" aria-hidden="true" />
                       </button>
                       <button
                         onClick={() => setToDelete(lease)}
-                        className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
-                        aria-label="Supprimer"
+                        className="rounded-md p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+                        aria-label={`Supprimer le bail de ${tenantName(tenant)}`}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
                       </button>
                     </div>
                   </td>
@@ -175,8 +178,8 @@ export function LeasesClient({
             })}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-slate-400">
-                  <FileText className="mx-auto mb-2 h-6 w-6 text-slate-300" />
+                <td colSpan={7} className="px-4 py-10 text-center text-slate-500">
+                  <FileText className="mx-auto mb-2 h-6 w-6 text-slate-300" aria-hidden="true" />
                   Aucun bail pour ce filtre.
                 </td>
               </tr>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Building, AlertCircle } from "lucide-react";
 import { loginAction, type LoginFormState } from "@/lib/auth-actions";
 import { inputClass, PrimaryButton } from "@/components/form";
+import { LegalFooterLinks } from "@/components/LegalLayout";
 
 const initialState: LoginFormState = {};
 
@@ -12,10 +13,10 @@ export function LoginForm() {
   const [state, formAction, pending] = useActionState(loginAction, initialState);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-slate-50 px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-white">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-white" aria-hidden="true">
             <Building className="h-6 w-6" />
           </div>
           <h1 className="mt-3 text-xl font-semibold text-slate-900">Immo Gestion</h1>
@@ -24,8 +25,8 @@ export function LoginForm() {
 
         <form action={formAction} className="space-y-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           {state.error && (
-            <div className="flex items-start gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
-              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+            <div role="alert" className="flex items-start gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
               <span>{state.error}</span>
             </div>
           )}
@@ -61,6 +62,7 @@ export function LoginForm() {
           </p>
         </form>
       </div>
-    </div>
+      <LegalFooterLinks />
+    </main>
   );
 }

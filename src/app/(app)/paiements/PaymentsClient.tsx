@@ -115,7 +115,7 @@ export function PaymentsClient({
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-gray-200 bg-white p-4">
           <p className="text-sm text-slate-500">Total percu</p>
-          <p className="mt-1 text-xl font-semibold text-emerald-600">{formatCurrency(totals.paye)}</p>
+          <p className="mt-1 text-xl font-semibold text-emerald-700">{formatCurrency(totals.paye)}</p>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-4">
           <p className="text-sm text-slate-500">En attente</p>
@@ -127,12 +127,13 @@ export function PaymentsClient({
         </div>
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Filtrer les paiements par statut">
         {(["all", "paye", "en_attente", "en_retard"] as const).map((s) => (
           <button
             key={s}
             onClick={() => setFilter(s)}
-            className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+            aria-pressed={filter === s}
+            className={`rounded-full px-3 py-1.5 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500 ${
               filter === s ? "bg-slate-900 text-white" : "bg-white text-slate-600 ring-1 ring-inset ring-gray-200 hover:bg-slate-50"
             }`}
           >
@@ -150,7 +151,9 @@ export function PaymentsClient({
               <th className="px-4 py-3">Echeance</th>
               <th className="px-4 py-3">Montant</th>
               <th className="px-4 py-3">Statut</th>
-              <th className="px-4 py-3"></th>
+              <th className="px-4 py-3">
+                <span className="sr-only">Actions</span>
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -171,19 +174,19 @@ export function PaymentsClient({
                       <button
                         onClick={() => markPaid(payment.id)}
                         disabled={pending}
-                        className="rounded-md p-1.5 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600"
-                        aria-label="Marquer comme paye"
+                        className="rounded-md p-1.5 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                        aria-label={`Marquer le paiement de ${tenantName(tenant)} comme paye`}
                         title="Marquer comme paye"
                       >
-                        <CheckCircle2 className="h-4 w-4" />
+                        <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
                       </button>
                     )}
                     <button
                       onClick={() => setToDelete(payment)}
-                      className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
-                      aria-label="Supprimer"
+                      className="rounded-md p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+                      aria-label={`Supprimer le paiement de ${tenantName(tenant)}`}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </button>
                   </div>
                 </td>
@@ -191,8 +194,8 @@ export function PaymentsClient({
             ))}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-slate-400">
-                  <CreditCard className="mx-auto mb-2 h-6 w-6 text-slate-300" />
+                <td colSpan={6} className="px-4 py-10 text-center text-slate-500">
+                  <CreditCard className="mx-auto mb-2 h-6 w-6 text-slate-300" aria-hidden="true" />
                   Aucun paiement pour ce filtre.
                 </td>
               </tr>

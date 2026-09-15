@@ -12,6 +12,7 @@ Application web de gestion immobiliere (Quebec) construite avec Next.js, TypeScr
 - **Maintenance** : tableau des demandes d'entretien par statut (ouverte / en cours / resolue).
 - **Blog** : billets prives (brouillon / publie) propres a chaque compte.
 - **Multi-utilisateurs** : inscription libre (`/signup`) — chaque compte a son propre espace de donnees, totalement isole des autres.
+- **Pages legales** : politique de confidentialite, conditions d'utilisation et politique de remboursement, accessibles publiquement et liees depuis les pages de connexion/inscription.
 
 ## Demarrage
 
@@ -37,6 +38,14 @@ Les donnees vivent dans une base SQLite locale (`data/app.db`, ignoree par git �
 - **Toutes les mutations** passent par des Server Actions Next.js qui revalident l'authentification et valident chaque champ avec [Zod](https://zod.dev/) avant d'ecrire en base (requetes SQL parametrees uniquement, aucune concatenation de chaines).
 - **En-tetes de securite** (`src/proxy.ts`) : Content-Security-Policy stricte avec nonce par requete, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security`.
 - **Donnees jamais exposees au client** : la base SQLite n'est accedee que depuis des modules marques `server-only`.
+
+## Accessibilite
+
+- **Contraste des couleurs** : tous les textes et controles interactifs respectent les seuils WCAG 2.1 AA (4.5:1 pour le texte, 3:1 pour les composants d'interface).
+- **Navigation au clavier** : indicateurs de focus visibles partout, piege de focus dans les fenetres modales (Tab reste dans la modale, Echap la ferme, le focus revient a l'element declencheur), boutons d'action a icone seule pourvus d'un libelle `aria-label` explicite (incluant le contexte, ex. « Supprimer l'unite 101 »).
+- **Lecteurs d'ecran** : landmarks (`main`, `nav`), hierarchie de titres coherente, icones decoratives masquees (`aria-hidden`), erreurs de formulaire annoncees (`role="alert"`), champs de recherche et menus deroulants nommes explicitement.
+- **Images** : aucune image matricielle dans l'application (uniquement des icones vectorielles decoratives) — rien ne necessite de texte alternatif.
+- Verifie par une analyse automatisee (axe-core) sur toutes les pages, vides et remplies de donnees : aucune violation detectee.
 
 ## Stack technique
 

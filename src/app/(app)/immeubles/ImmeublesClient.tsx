@@ -79,18 +79,18 @@ export function ImmeublesClient({ properties, units }: { properties: Property[];
             >
               <button
                 onClick={() => setToDelete(property)}
-                className="absolute right-4 top-4 rounded-md p-1.5 text-slate-300 opacity-0 hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
-                aria-label="Supprimer"
+                className="absolute right-4 top-4 rounded-md p-1.5 text-slate-400 opacity-0 hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+                aria-label={`Supprimer ${property.name}`}
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
               </button>
               <Link href={`/immeubles/${property.id}`}>
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100" aria-hidden="true">
                   <Building2 className="h-5 w-5 text-slate-600" />
                 </div>
-                <h3 className="mt-3 font-semibold text-slate-900">{property.name}</h3>
+                <h2 className="mt-3 font-semibold text-slate-900">{property.name}</h2>
                 <p className="mt-0.5 flex items-center gap-1 text-sm text-slate-500">
-                  <MapPin className="h-3.5 w-3.5" /> {property.address}, {property.city}
+                  <MapPin className="h-3.5 w-3.5" aria-hidden="true" /> {property.address}, {property.city}
                 </p>
                 <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4 text-sm">
                   <span className="text-slate-500">

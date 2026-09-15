@@ -125,26 +125,27 @@ export function MaintenanceClient({
                         <p className="text-sm font-medium text-slate-900">{request.title}</p>
                         <button
                           onClick={() => setToDelete(request)}
-                          className="shrink-0 rounded-md p-1 text-slate-300 hover:bg-red-50 hover:text-red-600"
-                          aria-label="Supprimer"
+                          className="shrink-0 rounded-md p-1 text-slate-500 hover:bg-red-50 hover:text-red-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+                          aria-label={`Supprimer la demande "${request.title}"`}
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                         </button>
                       </div>
                       <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
-                        <Building2 className="h-3 w-3" /> {unitLabel(unit, property)}
+                        <Building2 className="h-3 w-3" aria-hidden="true" /> {unitLabel(unit, property)}
                       </p>
                       <p className="mt-2 text-xs text-slate-500 line-clamp-2">{request.description}</p>
                       <div className="mt-3 flex items-center justify-between">
                         <Badge tone={maintenancePriorityMeta[request.priority].tone}>
                           {maintenancePriorityMeta[request.priority].label}
                         </Badge>
-                        <span className="text-xs text-slate-400">{formatDate(request.createdAt)}</span>
+                        <span className="text-xs text-slate-500">{formatDate(request.createdAt)}</span>
                       </div>
                       <select
-                        className="mt-3 w-full rounded-md border border-gray-200 px-2 py-1.5 text-xs text-slate-600"
+                        className="mt-3 w-full rounded-md border border-gray-200 px-2 py-1.5 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-500"
                         value={request.status}
                         disabled={pending}
+                        aria-label={`Changer le statut de "${request.title}"`}
                         onChange={(e) => changeStatus(request, e.target.value as MaintenanceStatus)}
                       >
                         <option value="ouverte">Ouverte</option>
@@ -155,7 +156,7 @@ export function MaintenanceClient({
                   );
                 })}
                 {items.length === 0 && (
-                  <p className="px-1 py-6 text-center text-xs text-slate-400">Aucune demande</p>
+                  <p className="px-1 py-6 text-center text-xs text-slate-500">Aucune demande</p>
                 )}
               </div>
             </div>

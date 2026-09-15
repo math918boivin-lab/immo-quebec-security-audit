@@ -99,8 +99,13 @@ export function TenantsClient({
       />
 
       <div className="mb-4 relative max-w-sm">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+        <label htmlFor="tenant-search" className="sr-only">
+          Rechercher un locataire
+        </label>
         <input
+          id="tenant-search"
+          type="search"
           className={`${inputClass} pl-9`}
           placeholder="Rechercher un locataire..."
           value={query}
@@ -118,10 +123,10 @@ export function TenantsClient({
             >
               <button
                 onClick={() => setToDelete(tenant)}
-                className="absolute right-4 top-4 rounded-md p-1.5 text-slate-300 opacity-0 hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
-                aria-label="Supprimer"
+                className="absolute right-4 top-4 rounded-md p-1.5 text-slate-400 opacity-0 hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+                aria-label={`Supprimer ${tenant.firstName} ${tenant.lastName}`.trim()}
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
               </button>
               <Link href={`/locataires/${tenant.id}`} className="block">
                 <div className="flex items-center gap-3">
@@ -139,10 +144,10 @@ export function TenantsClient({
                 </div>
                 <div className="mt-4 space-y-1.5 text-sm text-slate-500">
                   <p className="flex items-center gap-2">
-                    <Mail className="h-3.5 w-3.5" /> {tenant.email}
+                    <Mail className="h-3.5 w-3.5" aria-hidden="true" /> {tenant.email}
                   </p>
                   <p className="flex items-center gap-2">
-                    <Phone className="h-3.5 w-3.5" /> {tenant.phone}
+                    <Phone className="h-3.5 w-3.5" aria-hidden="true" /> {tenant.phone}
                   </p>
                 </div>
                 {unit && (
@@ -153,7 +158,7 @@ export function TenantsClient({
           );
         })}
         {filtered.length === 0 && (
-          <p className="col-span-full py-8 text-center text-slate-400">Aucun locataire trouve.</p>
+          <p className="col-span-full py-8 text-center text-slate-500">Aucun locataire trouve.</p>
         )}
       </div>
 

@@ -97,7 +97,7 @@ export default async function DashboardPage() {
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <h2 className="mb-4 font-semibold text-slate-900">Renouvellements a venir (60 jours)</h2>
           {upcomingRenewals.length === 0 ? (
-            <p className="text-sm text-slate-400">Aucun renouvellement dans les 60 prochains jours.</p>
+            <p className="text-sm text-slate-500">Aucun renouvellement dans les 60 prochains jours.</p>
           ) : (
             <ul className="space-y-3">
               {upcomingRenewals.map((lease) => {
@@ -138,7 +138,7 @@ export default async function DashboardPage() {
             </Link>
           </div>
           {overduePayments.length === 0 ? (
-            <p className="text-sm text-slate-400">Aucun paiement en retard. Bravo !</p>
+            <p className="text-sm text-slate-500">Aucun paiement en retard. Bravo !</p>
           ) : (
             <ul className="space-y-3">
               {overduePayments.slice(0, 5).map((payment) => {
@@ -174,7 +174,7 @@ export default async function DashboardPage() {
             </Link>
           </div>
           {openMaintenance.length === 0 ? (
-            <p className="text-sm text-slate-400">Aucune demande ouverte.</p>
+            <p className="text-sm text-slate-500">Aucune demande ouverte.</p>
           ) : (
             <ul className="space-y-3">
               {openMaintenance.slice(0, 5).map((request) => {

@@ -93,17 +93,17 @@ export function TenantDetailClient({
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <h2 className="mb-3 font-semibold text-slate-900">Coordonnees</h2>
           <p className="flex items-center gap-2 text-sm text-slate-600">
-            <Mail className="h-4 w-4 text-slate-400" /> {tenant.email}
+            <Mail className="h-4 w-4 text-slate-400" aria-hidden="true" /> {tenant.email}
           </p>
           <p className="mt-2 flex items-center gap-2 text-sm text-slate-600">
-            <Phone className="h-4 w-4 text-slate-400" /> {tenant.phone}
+            <Phone className="h-4 w-4 text-slate-400" aria-hidden="true" /> {tenant.phone}
           </p>
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm lg:col-span-2">
           <h2 className="mb-3 font-semibold text-slate-900">Historique des baux</h2>
           {leases.length === 0 ? (
-            <p className="text-sm text-slate-400">Aucun bail associe.</p>
+            <p className="text-sm text-slate-500">Aucun bail associe.</p>
           ) : (
             <ul className="divide-y divide-gray-100">
               {leases.map((lease) => {
@@ -132,10 +132,10 @@ export function TenantDetailClient({
       <div className="mt-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 className="mb-3 font-semibold text-slate-900">Historique des paiements</h2>
         {payments.length === 0 ? (
-          <p className="text-sm text-slate-400">Aucun paiement enregistre.</p>
+          <p className="text-sm text-slate-500">Aucun paiement enregistre.</p>
         ) : (
           <table className="w-full text-left text-sm">
-            <thead className="text-xs uppercase text-slate-400">
+            <thead className="text-xs uppercase text-slate-500">
               <tr>
                 <th className="py-2 pr-4">Echeance</th>
                 <th className="py-2 pr-4">Montant</th>

@@ -103,20 +103,20 @@ export function PropertyDetailClient({
 
   return (
     <div>
-      <Link href="/immeubles" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900">
-        <ArrowLeft className="h-4 w-4" /> Retour aux immeubles
+      <Link href="/immeubles" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500">
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Retour aux immeubles
       </Link>
 
       <PageHeader
         title={property.name}
         description={
           <span className="flex items-center gap-1">
-            <MapPin className="h-3.5 w-3.5" /> {property.address}, {property.city} {property.postalCode}
+            <MapPin className="h-3.5 w-3.5" aria-hidden="true" /> {property.address}, {property.city} {property.postalCode}
           </span>
         }
         action={
           <PrimaryButton onClick={openAdd}>
-            <Plus className="h-4 w-4" /> Ajouter une unite
+            <Plus className="h-4 w-4" aria-hidden="true" /> Ajouter une unite
           </PrimaryButton>
         }
       />
@@ -137,7 +137,9 @@ export function PropertyDetailClient({
               <th className="px-4 py-3">Loyer</th>
               <th className="px-4 py-3">Locataire</th>
               <th className="px-4 py-3">Statut</th>
-              <th className="px-4 py-3"></th>
+              <th className="px-4 py-3">
+                <span className="sr-only">Actions</span>
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -157,17 +159,17 @@ export function PropertyDetailClient({
                     <div className="flex justify-end gap-1">
                       <button
                         onClick={() => openEdit(unit)}
-                        className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                        aria-label="Modifier"
+                        className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500"
+                        aria-label={`Modifier l'unite ${unit.number}`}
                       >
-                        <Pencil className="h-4 w-4" />
+                        <Pencil className="h-4 w-4" aria-hidden="true" />
                       </button>
                       <button
                         onClick={() => setToDelete(unit)}
-                        className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
-                        aria-label="Supprimer"
+                        className="rounded-md p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+                        aria-label={`Supprimer l'unite ${unit.number}`}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
                       </button>
                     </div>
                   </td>
@@ -176,7 +178,7 @@ export function PropertyDetailClient({
             })}
             {units.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
                   Aucune unite pour cet immeuble.
                 </td>
               </tr>
